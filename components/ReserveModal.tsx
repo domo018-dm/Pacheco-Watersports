@@ -37,53 +37,6 @@ function toISO(date: string, hour: number) {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface SlotAvail { hour: number; available: number; blocked: boolean }
-interface Confirmation { id: string; craftName: string; date: string; startHour: number; duration: number; name: string }
-
-// ── Confirmation screen ───────────────────────────────────────────────────────
-function ConfirmScreen({ c, onClose }: { c: Confirmation; onClose: () => void }) {
-  const dateStr  = new Date(`${c.date}T12:00:00`).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  })
-  const refCode  = c.id.split('-')[0].toUpperCase()
-  const startStr = hourLabel(c.startHour)
-  const endStr   = hourLabel(c.startHour + c.duration)
-
-  return (
-    <div>
-      <div style={{ fontSize: '2.4rem', color: 'var(--water)', marginBottom: '.8rem', lineHeight: 1 }}>✓</div>
-      <h3 style={{ marginBottom: '.4rem' }}>You&apos;re set, {c.name.split(' ')[0]}!</h3>
-      <p className="modal-sub">We&apos;ll call to confirm — usually within the hour.</p>
-
-      <div style={{
-        border: '1px solid oklch(0.85 0.015 85 / .14)',
-        padding: '1rem 1.2rem',
-        display: 'flex', flexDirection: 'column', gap: '.7rem',
-        marginBottom: '1.4rem',
-      }}>
-        {[
-          ['Ref #',  <span key="ref" style={{ fontFamily: 'var(--ff-mono)', letterSpacing: '.12em', color: 'var(--amber)' }}>{refCode}</span>],
-          ['Craft',  c.craftName],
-          ['Date',   dateStr],
-          ['Time',   `${startStr} – ${endStr}`],
-        ].map(([label, value]) => (
-          <div key={String(label)} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'baseline' }}>
-            <span style={{ fontFamily: 'var(--ff-mono)', fontSize: '.68rem', letterSpacing: '.1em', textTransform: 'uppercase', color: 'oklch(0.85 0.015 85 / .45)', flexShrink: 0 }}>
-              {label}
-            </span>
-            <span style={{ fontSize: '.9rem', textAlign: 'right' }}>{value}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="modal-actions">
-        <button type="button" className="btn-confirm" onClick={onClose}>Done</button>
-        <p className="modal-call">
-          Questions? <a href="tel:+15055739275">(505) 573-9275</a>
-        </p>
-      </div>
-    </div>
-  )
-}
 
 // ── Main modal ────────────────────────────────────────────────────────────────
 interface Props {
@@ -105,9 +58,8 @@ export default function ReserveModal({ craft, onClose }: Props) {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
 
-  const [submitting,   setSubmitting]   = useState(false)
-  const [formError,    setFormError]    = useState<string | null>(null)
-  const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [formError,  setFormError]  = useState<string | null>(null)
 
   const validHours = ALL_START_HOURS.filter(h => h + duration <= 18)
 
@@ -156,7 +108,9 @@ export default function ReserveModal({ craft, onClose }: Props) {
     setSubmitting(true)
 
     try {
-      const res = await fetch('/api/reservations', {
+      // Single request: creates pending reservation + Stripe Checkout Session server-side.
+      // Amount is computed from hourly_rate in the DB — never sent from the client.
+      const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -174,18 +128,21 @@ export default function ReserveModal({ craft, onClose }: Props) {
       if (!res.ok || data.error) {
         const messages: Record<string, string> = {
           no_units_available: 'That slot just filled up. Pick a different time.',
-          slot_blocked:       "That window isn’t available. Pick another.",
+          slot_blocked:       "That window isn't available. Pick another.",
           craft_not_found:    'Craft not found. Close and try again.',
+          craft_not_bookable: data.message ?? 'This craft isn\'t available online. Call us.',
+          stripe_error:       data.message ?? 'Payment setup failed. Please try again.',
           db_error:           'Something went wrong. Call us at (505) 573-9275.',
         }
         setFormError(messages[data.error] ?? data.message ?? 'Something went wrong.')
         fetchSlots()
-      } else {
-        setConfirmation({ id: data.id, craftName: craft.name, date, startHour, duration, name: name.trim() })
+        return
       }
+
+      // Redirect to Stripe Checkout — page navigates away; no setSubmitting(false) needed
+      window.location.href = data.url
     } catch {
       setFormError('Network error. Please try again.')
-    } finally {
       setSubmitting(false)
     }
   }
@@ -208,10 +165,8 @@ export default function ReserveModal({ craft, onClose }: Props) {
         <button className="modal-x" type="button" onClick={onClose} aria-label="Close">×</button>
 
         <div className="modal-body">
-          {confirmation ? (
-            <ConfirmScreen c={confirmation} onClose={onClose} />
-          ) : (
-            <form onSubmit={handleSubmit} noValidate>
+          {/* Stripe Checkout handles payment; /book/success shows the receipt */}
+          <form onSubmit={handleSubmit} noValidate>
               {/* Header */}
               <p className="modal-eyebrow">{typeLabel} · {rateLabel}</p>
               <h3>{craft.name}</h3>
@@ -319,15 +274,18 @@ export default function ReserveModal({ craft, onClose }: Props) {
 
               <div className="modal-actions">
                 <button type="submit" className="btn-confirm" disabled={!canSubmit}>
-                  {submitting ? 'Reserving…' : 'Reserve — confirm by phone'}
+                  {submitting
+                    ? 'Redirecting to payment…'
+                    : craft.hourly_rate && startHour !== null
+                      ? `Pay $${(craft.hourly_rate * duration).toFixed(0)} — Secure Checkout`
+                      : 'Continue to Payment'}
                 </button>
                 <p className="modal-call">
-                  No payment now · we call to confirm ·{' '}
+                  Powered by Stripe · your card details never touch our server ·{' '}
                   <a href="tel:+15055739275">(505) 573-9275</a>
                 </p>
               </div>
             </form>
-          )}
         </div>
       </div>
     </div>
