@@ -418,7 +418,7 @@ a { color: inherit; text-decoration: none; }
 }
 .fleet-head .tag { max-width: 48ch; color: oklch(0.92 0.012 85 / .82); font-size: clamp(1rem, 4vw, 1.15rem); text-wrap: pretty; }
 
-.fleet-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .4rem; }
+.fleet-tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .4rem; margin-bottom: 1.6rem; }
 .fleet-tab {
   font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
   padding: .55rem .95rem; border: 1px solid var(--line); background: transparent; color: oklch(0.88 0.015 85 / .72);
