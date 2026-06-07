@@ -52,7 +52,8 @@ async function sendConfirmationEmail(session: Stripe.Checkout.Session) {
     amountCents:   session.amount_total ?? 0,
   })
 
-  const from = process.env.RESEND_FROM_ADDRESS ?? 'onboarding@resend.dev'
+  const fromEmail = process.env.RESEND_FROM_ADDRESS ?? 'onboarding@resend.dev'
+  const from = `Pacheco Watersports <${fromEmail}>`
 
   const { error } = await getResend().emails.send({ from, to, subject, html, text })
 
