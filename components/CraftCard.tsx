@@ -1,9 +1,9 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import type { Craft } from '@/types'
 
 interface Props {
-  craft: Craft
+  craft:      Craft
+  onReserve?: (craft: Craft) => void
 }
 
 function typeLabel(craft: Craft): string {
@@ -20,7 +20,7 @@ function displayRate(craft: Craft): string {
   return craft.rate
 }
 
-export default function CraftCard({ craft }: Props) {
+export default function CraftCard({ craft, onReserve }: Props) {
   return (
     <article className="craft">
       <div className="craft-media">
@@ -34,15 +34,10 @@ export default function CraftCard({ craft }: Props) {
             style={{ objectFit: 'cover' }}
           />
         ) : (
-          <span
-            style={{
-              opacity: 0.28,
-              fontSize: '.68rem',
-              fontFamily: 'var(--ff-mono)',
-              letterSpacing: '.12em',
-              textTransform: 'uppercase',
-            }}
-          >
+          <span style={{
+            opacity: 0.28, fontSize: '.68rem',
+            fontFamily: 'var(--ff-mono)', letterSpacing: '.12em', textTransform: 'uppercase',
+          }}>
             Photo coming soon
           </span>
         )}
@@ -61,7 +56,6 @@ export default function CraftCard({ craft }: Props) {
           <span><b>{craft.class_label}</b></span>
         </div>
 
-        {/* Availability is calculated dynamically once booking data exists */}
         <div className="avail few">
           <span className="dot" />
           Call to check availability
@@ -69,9 +63,13 @@ export default function CraftCard({ craft }: Props) {
 
         <div className="craft-foot">
           <span className="craft-rate">{displayRate(craft)}</span>
-          <Link className="btn-reserve" href={`/book/${craft.id}`}>
+          <button
+            type="button"
+            className="btn-reserve"
+            onClick={() => onReserve?.(craft)}
+          >
             Reserve
-          </Link>
+          </button>
         </div>
       </div>
     </article>
