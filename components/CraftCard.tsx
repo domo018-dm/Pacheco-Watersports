@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import type { Craft } from '@/types'
 
 interface Props {
@@ -68,9 +69,9 @@ export default function CraftCard({ craft }: Props) {
 
         <div className="craft-foot">
           <span className="craft-rate">{displayRate(craft)}</span>
-          <a className="btn-reserve" href="tel:+15055739275">
+          <Link className="btn-reserve" href={`/book/${craft.id}`}>
             Reserve
-          </a>
+          </Link>
         </div>
       </div>
     </article>

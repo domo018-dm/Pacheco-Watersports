@@ -538,6 +538,63 @@ a { color: inherit; text-decoration: none; }
 .modal-call a { color: var(--amber); }
 
 /* =========================================================================
+   BOOKING
+   ========================================================================= */
+.booking-header     { margin-bottom: 2.5rem; }
+.booking-title      { font-family: var(--ff-display); font-size: clamp(2rem,5vw,3.5rem); line-height: 1; margin: .3rem 0 .6rem; }
+.booking-subtitle   { font-family: var(--ff-mono); font-size: .78rem; letter-spacing: .08em; color: oklch(0.85 0.015 85 / .6); }
+
+.booking-form       { max-width: 640px; display: flex; flex-direction: column; gap: 2rem; }
+
+.booking-fieldset   { border: 1px solid oklch(0.85 0.015 85 / .12); padding: 1.5rem; margin: 0; }
+.booking-legend     { font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+                      color: var(--amber); padding: 0 .5rem; }
+.booking-row        { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+.booking-field      { display: flex; flex-direction: column; gap: .35rem; }
+.booking-label      { font-family: var(--ff-mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+                      color: oklch(0.85 0.015 85 / .55); }
+.booking-input,
+.booking-select     { font-family: var(--ff-body); font-size: .95rem; color: var(--bone);
+                      background: oklch(0.22 0.032 240); border: 1px solid oklch(0.85 0.015 85 / .18);
+                      padding: .65rem .8rem; outline: none; appearance: none; border-radius: 0;
+                      transition: border-color .18s; }
+.booking-input:focus,
+.booking-select:focus { border-color: var(--amber); }
+.booking-input[type="date"] { color-scheme: dark; }
+
+.booking-avail-row  { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+.avail-badge        { font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .1em;
+                      text-transform: uppercase; padding: .3rem .7rem; }
+.avail-open         { background: oklch(0.72 0.115 228 / .15); color: var(--water); }
+.avail-few          { background: oklch(0.83 0.165 82  / .15); color: var(--amber); }
+.avail-full         { background: oklch(0.63 0.135 46  / .15); color: var(--clay); }
+.avail-checking     { color: oklch(0.85 0.015 85 / .45); }
+.booking-avail-detail { font-family: var(--ff-mono); font-size: .68rem; color: oklch(0.85 0.015 85 / .4); }
+
+.booking-error      { font-family: var(--ff-mono); font-size: .8rem; color: var(--clay);
+                      background: oklch(0.63 0.135 46 / .1); border: 1px solid oklch(0.63 0.135 46 / .25);
+                      padding: .8rem 1rem; }
+
+/* Confirmation screen */
+.booking-confirm        { max-width: 480px; padding: 1rem 0; }
+.booking-confirm-icon   { font-size: 2.5rem; color: var(--water); margin-bottom: 1rem; }
+.booking-confirm-head   { font-family: var(--ff-display); font-size: clamp(1.6rem,4vw,2.4rem);
+                          line-height: 1.1; margin: 0 0 .6rem; }
+.booking-confirm-sub    { font-family: var(--ff-body); font-size: .9rem; color: oklch(0.85 0.015 85 / .65);
+                          margin: 0 0 1.5rem; }
+.booking-confirm-card   { border: 1px solid oklch(0.85 0.015 85 / .14); padding: 1.2rem 1.4rem;
+                          display: flex; flex-direction: column; gap: .85rem; }
+.booking-confirm-row    { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.booking-confirm-label  { font-family: var(--ff-mono); font-size: .68rem; letter-spacing: .1em;
+                          text-transform: uppercase; color: oklch(0.85 0.015 85 / .45); flex-shrink: 0; }
+.booking-confirm-value  { font-family: var(--ff-body); font-size: .9rem; text-align: right; }
+.booking-ref            { font-family: var(--ff-mono); letter-spacing: .12em; color: var(--amber); }
+
+@media(min-width: 500px) {
+  .booking-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* =========================================================================
    DESKTOP
    ========================================================================= */
 @media(min-width: 760px) {
