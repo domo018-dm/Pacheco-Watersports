@@ -168,11 +168,23 @@ export default function ReserveModal({ craft, onClose }: Props) {
           {/* Stripe Checkout handles payment; /book/success shows the receipt */}
           <form onSubmit={handleSubmit} noValidate>
               {/* Header */}
-              <p className="modal-eyebrow">{typeLabel} · {rateLabel}</p>
+              <p className="modal-eyebrow">{typeLabel}</p>
               <h3>{craft.name}</h3>
               <p className="modal-sub">
                 {craft.seats} {craft.type === 'ski' ? 'riders' : 'passengers'} · {craft.description}
               </p>
+
+              {/* Live price — updates as duration changes */}
+              {craft.hourly_rate && (
+                <div className="modal-price-bar">
+                  <span className="modal-price-total">
+                    ${(craft.hourly_rate * duration).toFixed(0)}
+                  </span>
+                  <span className="modal-price-detail">
+                    ${craft.hourly_rate.toFixed(0)}/hr × {duration} hr
+                  </span>
+                </div>
+              )}
 
               {/* Date */}
               <div className="field-label">Date</div>

@@ -470,7 +470,7 @@ a { color: inherit; text-decoration: none; }
 .avail.full { color: oklch(0.7 0.08 46); }
 
 .craft-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding-top: .3rem; }
-.craft-rate { font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .06em; color: oklch(0.85 0.015 85 / .6); text-transform: uppercase; }
+.craft-rate { font-family: var(--ff-mono); font-size: .85rem; letter-spacing: .06em; color: var(--bone); text-transform: uppercase; font-weight: 700; }
 .btn-reserve {
   font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700;
   padding: .65rem 1rem; background: var(--water); color: var(--ink); border: 1px solid var(--water);
@@ -530,6 +530,12 @@ a { color: inherit; text-decoration: none; }
 
 .modal-hint     { font-family: var(--ff-mono); font-size: .75rem; color: oklch(0.85 0.015 85 / .35);
                   margin-bottom: 1.3rem; }
+
+.modal-price-bar    { display: flex; align-items: baseline; gap: .75rem; margin-bottom: 1.2rem;
+                      padding: .8rem 1rem; background: oklch(0.83 0.165 82 / .1); border-left: 3px solid var(--amber); }
+.modal-price-total  { font-family: var(--ff-display); font-size: 2rem; line-height: 1; color: var(--amber); }
+.modal-price-detail { font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .08em;
+                      color: oklch(0.85 0.015 85 / .55); }
 
 .modal-inputs { display: grid; gap: .7rem; margin-bottom: 1.3rem; }
 .modal-inputs input {
