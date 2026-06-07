@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getResend } from '@/lib/resend'
+import { buildBookingConfirmationEmail } from '@/lib/emails/booking-confirmation'
 
 // Stripe delivers webhooks multiple times on network errors. Every handler path
 // must be idempotent — processing the same event twice must not corrupt state.
@@ -12,6 +14,56 @@ import { createServiceClient } from '@/lib/supabase/server'
 //   - checkout.session.expired: UPDATE WHERE status='pending' — safe same way.
 //
 // NEVER return a non-2xx for a valid but already-processed event; Stripe would retry forever.
+
+// Craft type label derived from the same logic as the checkout route / modal
+function craftTypeLabel(session: Stripe.Checkout.Session): string {
+  // We embed craft_type in metadata so we can reconstruct the label without a DB query
+  const t = session.metadata?.craft_type
+  if (t === 'ski')    return 'Jet Ski'
+  if (t === 'boat')   return session.metadata?.craft_class === 'CRUISE' ? 'Pontoon' : 'Boat'
+  return 'Watercraft'
+}
+
+async function sendConfirmationEmail(session: Stripe.Checkout.Session) {
+  const meta = session.metadata ?? {}
+
+  const to           = session.customer_email
+  const customerName = meta.customer_name    ?? ''
+  const craftName    = meta.craft_name       ?? 'your craft'
+  const startTime    = meta.start_time
+  const endTime      = meta.end_time
+  const durationHrs  = meta.duration_hours ? Number(meta.duration_hours) : 0
+  const reservId     = meta.reservation_id  ?? ''
+
+  if (!to || !startTime || !endTime || !reservId) {
+    console.warn('[webhook/email] missing fields — skipping email', { to, startTime, endTime, reservId })
+    return
+  }
+
+  const { subject, html, text } = buildBookingConfirmationEmail({
+    reservationId: reservId,
+    customerName,
+    customerEmail: to,
+    craftName,
+    craftType:     craftTypeLabel(session),
+    startTime,
+    endTime,
+    durationHours: durationHrs,
+    amountCents:   session.amount_total ?? 0,
+  })
+
+  const from = process.env.RESEND_FROM_ADDRESS ?? 'onboarding@resend.dev'
+
+  const { error } = await getResend().emails.send({ from, to, subject, html, text })
+
+  if (error) {
+    // Non-fatal: reservation is already confirmed. Log for ops visibility but
+    // do NOT throw — a failed email must never un-confirm a paid booking.
+    console.error('[webhook] email_delivery_failed', { to, reservId, error })
+  } else {
+    console.log(`[webhook] confirmation email sent → ${to} (reservation ${reservId})`)
+  }
+}
 
 export async function POST(req: NextRequest) {
   // ── 1. Read raw body (must not be parsed — signature covers exact bytes) ───
@@ -60,8 +112,9 @@ export async function POST(req: NextRequest) {
           break
         }
 
-        // Idempotent: WHERE status='pending' means re-delivery is a no-op
-        const { error } = await db
+        // Idempotent: WHERE status='pending' means re-delivery is a no-op.
+        // .select('id') returns the rows actually updated — empty array = already confirmed.
+        const { error, data: confirmed } = await db
           .from('reservations')
           .update({
             status:                    'confirmed',
@@ -70,6 +123,7 @@ export async function POST(req: NextRequest) {
           })
           .eq('id', reservationId)
           .eq('status', 'pending')   // ← idempotency guard
+          .select('id')
 
         if (error) {
           console.error('[webhook] failed to confirm reservation:', error.message)
@@ -78,12 +132,25 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`[webhook] reservation ${reservationId} confirmed (session ${session.id})`)
+
+        // Send confirmation email only when this delivery actually flipped the row.
+        // confirmed.length === 0 means already confirmed (re-delivery) — skip the email.
+        if ((confirmed?.length ?? 0) > 0) {
+          try {
+            await sendConfirmationEmail(session)
+          } catch (emailErr) {
+            // Catch any unexpected throw from sendConfirmationEmail itself.
+            // Reservation is confirmed — do not fail the webhook over email.
+            console.error('[webhook] email_delivery_failed (uncaught)', emailErr)
+          }
+        } else {
+          console.log(`[webhook] reservation ${reservationId} already confirmed — skipping email`)
+        }
+
         break
       }
 
       // ── Checkout session expired without payment ───────────────────────────
-      // Our availability logic already ignores expired-pending reservations.
-      // Cancel explicitly for clean admin records.
       case 'checkout.session.expired': {
         const session       = event.data.object as Stripe.Checkout.Session
         const reservationId = session.metadata?.reservation_id
@@ -110,15 +177,24 @@ export async function POST(req: NextRequest) {
           ? session.payment_intent
           : session.payment_intent?.id ?? null
 
-        const { error } = await db
+        const { error, data: confirmed } = await db
           .from('reservations')
           .update({ status: 'confirmed', payment_status: 'paid', stripe_payment_intent_id: paymentIntentId })
           .eq('id', reservationId)
           .eq('status', 'pending')
+          .select('id')
 
         if (error) {
           console.error('[webhook] async_payment_succeeded db error:', error.message)
           return NextResponse.json({ error: 'db_error' }, { status: 500 })
+        }
+
+        if ((confirmed?.length ?? 0) > 0) {
+          try {
+            await sendConfirmationEmail(session)
+          } catch (emailErr) {
+            console.error('[webhook] email_delivery_failed (async payment, uncaught)', emailErr)
+          }
         }
         break
       }

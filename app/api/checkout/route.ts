@@ -137,6 +137,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         reservation_id: reservationId,
         craft_name:     craft.name,
+        craft_type:     craft.type ?? '',
+        craft_class:    craft.class_label ?? '',
         start_time:     startTime,
         end_time:       endTime,
         duration_hours: String(durationHours),
