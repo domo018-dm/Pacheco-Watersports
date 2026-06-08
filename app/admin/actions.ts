@@ -114,6 +114,51 @@ export async function editReservation(
   return {}
 }
 
+// ── Admin phone-in bookings ───────────────────────────────────────────────────
+export async function createAdminReservation(data: {
+  craftId: string
+  startTime: string
+  endTime: string
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  notes: string
+}) {
+  const supabase = await requireAdmin()
+
+  // Use the same concurrency-safe RPC as public bookings for the availability
+  // check and insert. Email is required by the RPC; use a placeholder if blank.
+  const { data: rpcResult, error: rpcErr } = await supabase.rpc('create_reservation', {
+    p_craft_id:       data.craftId,
+    p_customer_name:  data.customerName.trim(),
+    p_customer_email: data.customerEmail.trim() || 'noemail',
+    p_customer_phone: data.customerPhone.trim() || null,
+    p_start_time:     data.startTime,
+    p_end_time:       data.endTime,
+  })
+
+  if (rpcErr) return { error: rpcErr.message }
+  if (rpcResult?.error) {
+    return { error: (rpcResult.message as string | undefined) ?? (rpcResult.error as string) }
+  }
+
+  const reservationId = rpcResult.id as string
+
+  // Promote to confirmed immediately — payment will be collected in person
+  const { error: updateErr } = await supabase
+    .from('reservations')
+    .update({
+      status: 'confirmed',
+      ...(data.notes.trim() ? { notes: data.notes.trim() } : {}),
+    })
+    .eq('id', reservationId)
+
+  if (updateErr) return { error: updateErr.message }
+
+  revalidatePath('/admin/reservations')
+  return { id: reservationId }
+}
+
 // ── Refunds ───────────────────────────────────────────────────────────────────
 export async function refundReservation(reservationId: string, amountCents: number) {
   const supabase = await requireAdmin()

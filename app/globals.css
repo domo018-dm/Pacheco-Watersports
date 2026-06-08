@@ -911,6 +911,19 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--ff-mono); font-size: .72rem; color: oklch(0.85 0.015 85 / .35);
 }
 
+/* ── New booking form ── */
+.adm-new-booking-form { max-width: 640px; }
+.adm-form-section-title {
+  font-size: .63rem; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: oklch(0.85 0.015 85 / .38);
+  margin: 0 0 .75rem;
+}
+.adm-back-link {
+  font-family: var(--ff-mono); font-size: .72rem;
+  color: oklch(0.85 0.015 85 / .4); text-decoration: none;
+}
+.adm-back-link:hover { color: var(--bone); }
+
 /* ── Refund panel ── */
 .adm-refund-panel {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;

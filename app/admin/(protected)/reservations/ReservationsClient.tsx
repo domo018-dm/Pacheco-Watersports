@@ -190,9 +190,14 @@ export default function ReservationsClient({
     <div>
       <div className="adm-topbar">
         <h1 className="adm-title">Reservations</h1>
-        <span style={{ fontFamily: 'var(--ff-mono)', fontSize: '.7rem', color: 'oklch(0.85 0.015 85 / .4)' }}>
-          {reservations.length} row{reservations.length !== 1 ? 's' : ''}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span style={{ fontFamily: 'var(--ff-mono)', fontSize: '.7rem', color: 'oklch(0.85 0.015 85 / .4)' }}>
+            {reservations.length} row{reservations.length !== 1 ? 's' : ''}
+          </span>
+          <a href="/admin/reservations/new" className="adm-btn adm-btn-sm">
+            + New booking
+          </a>
+        </div>
       </div>
 
       <div className="adm-content">
