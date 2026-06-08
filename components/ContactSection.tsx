@@ -25,7 +25,12 @@ export default function ContactSection() {
         </div>
         <div className="contact-meta">
           <span>Conchas Lake, New Mexico</span>
-          <span>@pachecowatersports</span>
+          <a
+            href="https://www.tiktok.com/@pachecowatersports"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'inherit' }}
+          >@pachecowatersports</a>
           <span>Jet Skis · Skid Steer</span>
         </div>
       </div>

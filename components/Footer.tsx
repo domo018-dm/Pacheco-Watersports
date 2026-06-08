@@ -13,6 +13,14 @@ export default function Footer() {
             style={{ height: '96px', width: 'auto', marginBottom: '1rem' }}
           />
           <p className="foot-fine">On the water. On the job. — Conchas Lake, NM</p>
+          <a
+            href="https://www.tiktok.com/@pachecowatersports"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="foot-tiktok"
+          >
+            TikTok · @pachecowatersports
+          </a>
         </div>
         <nav className="foot-links" aria-label="Footer">
           <a href="#jetski">Jet Skis</a>
