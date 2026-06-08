@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { useTransition, useState, useEffect, useCallback } from 'react'
-import { updateReservationStatus, editReservation, refundReservation, generatePaymentLink } from '@/app/admin/actions'
+import { updateReservationStatus, editReservation, refundReservation, generatePaymentLink, sendPaymentLinkEmail } from '@/app/admin/actions'
 
 interface Craft { id: string; name: string }
 interface Reservation {
@@ -84,9 +84,12 @@ export default function ReservationsClient({
   const [editPending,   setEditPending]   = useState(false)
 
   // ── Pay link panel state ───────────────────────────────────────────────────
-  const [payLink,        setPayLink]        = useState<{ name: string; url?: string; error?: string } | null>(null)
+  const [payLink,        setPayLink]        = useState<{ reservationId: string; name: string; email?: string; url?: string; error?: string } | null>(null)
   const [payLinkPending, setPayLinkPending] = useState<string | null>(null)
   const [copied,         setCopied]         = useState(false)
+  const [emailSending,   setEmailSending]   = useState(false)
+  const [emailSent,      setEmailSent]      = useState(false)
+  const [emailError,     setEmailError]     = useState<string | null>(null)
 
   // ── Refund panel state ─────────────────────────────────────────────────────
   const [refunding,     setRefunding]     = useState<Reservation | null>(null)
@@ -167,11 +170,24 @@ export default function ReservationsClient({
     setPayLinkPending(r.id)
     const result = await generatePaymentLink(r.id)
     setPayLinkPending(null)
-    setPayLink({ name: r.customer_name, ...result })
+    const email = r.customer_email && r.customer_email !== 'noemail' ? r.customer_email : undefined
+    setPayLink({ reservationId: r.id, name: r.customer_name, email, ...result })
     setCopied(false)
+    setEmailSent(false)
+    setEmailError(null)
   }
 
-  function closePayLink() { setPayLink(null); setCopied(false) }
+  function closePayLink() { setPayLink(null); setCopied(false); setEmailSent(false); setEmailError(null) }
+
+  async function handleSendEmail() {
+    if (!payLink?.url || !payLink.reservationId) return
+    setEmailSending(true)
+    setEmailError(null)
+    const result = await sendPaymentLinkEmail(payLink.reservationId, payLink.url)
+    setEmailSending(false)
+    if (result.error) { setEmailError(result.error); return }
+    setEmailSent(true)
+  }
 
   async function shareOrCopy(url: string) {
     if (typeof navigator.share === 'function') {
@@ -371,8 +387,7 @@ export default function ReservationsClient({
             ) : (
               <>
                 <p className="adm-refund-meta">
-                  For <strong>{payLink.name}</strong> — send this link so they can pay by card.
-                  Link expires in 24 hours.
+                  For <strong>{payLink.name}</strong> — expires in 24 hours.
                 </p>
                 <div className="adm-paylink-row">
                   <input
@@ -388,6 +403,18 @@ export default function ReservationsClient({
                     {copied ? 'Copied!' : typeof navigator !== 'undefined' && 'share' in navigator ? 'Share' : 'Copy'}
                   </button>
                 </div>
+                {payLink.email && (
+                  <div style={{ marginTop: '.75rem', display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap' }}>
+                    <button
+                      className="adm-btn adm-btn-ghost adm-btn-sm"
+                      style={{ borderColor: 'var(--water)', color: 'var(--water)' }}
+                      disabled={emailSending || emailSent}
+                      onClick={handleSendEmail}>
+                      {emailSending ? 'Sending…' : emailSent ? '✓ Email sent' : `Email to ${payLink.email}`}
+                    </button>
+                    {emailError && <span style={{ fontSize: '.72rem', color: 'oklch(0.72 0.15 15)' }}>{emailError}</span>}
+                  </div>
+                )}
               </>
             )}
           </div>

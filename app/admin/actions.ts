@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAuthServerClient } from '@/lib/supabase/ssr-server'
 import { getStripe } from '@/lib/stripe'
+import { getResend } from '@/lib/resend'
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
 // Every action verifies admin status independently (defense in depth).
@@ -183,6 +184,60 @@ export async function generatePaymentLink(reservationId: string) {
   await supabase.from('reservations').update({ stripe_session_id: session.id }).eq('id', reservationId)
 
   return { url: session.url! }
+}
+
+// ── Send payment link email ───────────────────────────────────────────────────
+export async function sendPaymentLinkEmail(reservationId: string, paymentUrl: string) {
+  const supabase = await requireAdmin()
+
+  const { data: res, error } = await supabase
+    .from('reservations')
+    .select('customer_name, customer_email, start_time, end_time, crafts(name)')
+    .eq('id', reservationId)
+    .single()
+
+  if (error || !res) return { error: 'Reservation not found' }
+
+  const email = res.customer_email as string | null
+  if (!email || email === 'noemail') return { error: 'No email address on file for this customer' }
+
+  const craft = res.crafts as unknown as { name: string } | null
+  const start = new Date(res.start_time)
+  const durationHours = Math.round(
+    (new Date(res.end_time).getTime() - start.getTime()) / 3_600_000
+  )
+  const dateStr = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  const timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
+  const html = `<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem 1rem;color:#1a1a1a;background:#fff">
+  <p style="font-size:1rem;font-weight:700;margin:0 0 1.5rem;letter-spacing:.04em">PACHECO WATERSPORTS</p>
+  <p style="margin:0 0 .75rem">Hi ${res.customer_name},</p>
+  <p style="margin:0 0 1.25rem">Here&rsquo;s your secure payment link for your upcoming rental. Click the button below to pay by card &mdash; it only takes a minute.</p>
+  <table style="margin:0 0 1.25rem">
+    <tr><td style="color:#555;padding-right:.75rem">Craft</td><td><strong>${craft?.name ?? 'Your rental'}</strong></td></tr>
+    <tr><td style="color:#555;padding-right:.75rem">Date</td><td>${dateStr}</td></tr>
+    <tr><td style="color:#555;padding-right:.75rem">Time</td><td>${timeStr} &middot; ${durationHours}hr</td></tr>
+  </table>
+  <a href="${paymentUrl}" style="display:inline-block;background:#0ea5e9;color:#fff;padding:.75rem 1.75rem;border-radius:.375rem;text-decoration:none;font-weight:700;font-size:1rem;margin:0 0 1.5rem">Pay now &rarr;</a>
+  <p style="color:#777;font-size:.85rem;margin:0 0 .5rem">This link expires in 24&nbsp;hours. Questions? Call us at <a href="tel:+15055739275" style="color:#0ea5e9">(505)&nbsp;573&#8209;9275</a> or message us on TikTok <a href="https://www.tiktok.com/@pachecowatersports" style="color:#0ea5e9">@pachecowatersports</a>.</p>
+  <p style="color:#777;font-size:.85rem;margin:0">See you on the water!<br>&mdash; Pacheco Watersports, Conchas Lake, NM</p>
+</body>
+</html>`
+
+  try {
+    await getResend().emails.send({
+      from:    'Pacheco Watersports <bookings@pachecowatersports.com>',
+      to:      email,
+      subject: `Your payment link — ${craft?.name ?? 'Pacheco Watersports'} rental`,
+      html,
+    })
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to send email' }
+  }
+
+  return {}
 }
 
 // ── Admin phone-in bookings ───────────────────────────────────────────────────
