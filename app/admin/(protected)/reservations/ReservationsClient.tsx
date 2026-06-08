@@ -146,7 +146,7 @@ export default function ReservationsClient({
               const refundedCents = r.refunded_cents ?? 0
               const remaining     = (r.amount_cents ?? 0) - refundedCents
               const canRefund     = (r.payment_status === 'paid' || r.payment_status === 'partially_refunded')
-                                    && remaining > 0 && !!r.stripe_payment_intent_id
+                                    && remaining > 0
 
               return (
                 <div key={r.id} className="res-card">

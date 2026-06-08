@@ -97,12 +97,30 @@ export async function refundReservation(reservationId: string, amountCents: numb
 
   const { data: reservation, error: fetchErr } = await supabase
     .from('reservations')
-    .select('stripe_payment_intent_id, amount_cents, refunded_cents, payment_status')
+    .select('stripe_payment_intent_id, stripe_session_id, amount_cents, refunded_cents, payment_status')
     .eq('id', reservationId)
     .single()
 
   if (fetchErr || !reservation) return { error: fetchErr?.message ?? 'Reservation not found' }
-  if (!reservation.stripe_payment_intent_id) return { error: 'No payment intent on record — cannot refund' }
+
+  // Resolve the payment intent ID. If it wasn't stored on the reservation (e.g.
+  // the row predates the column), retrieve it from the Stripe session and cache it.
+  let piId = reservation.stripe_payment_intent_id as string | null
+  if (!piId && reservation.stripe_session_id) {
+    try {
+      const session = await getStripe().checkout.sessions.retrieve(reservation.stripe_session_id)
+      piId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : (session.payment_intent as { id: string } | null)?.id ?? null
+      if (piId) {
+        await supabase.from('reservations').update({ stripe_payment_intent_id: piId }).eq('id', reservationId)
+      }
+    } catch {
+      // fall through to the null check below
+    }
+  }
+
+  if (!piId) return { error: 'No Stripe payment record found for this reservation' }
 
   const alreadyRefunded = reservation.refunded_cents ?? 0
   const total           = reservation.amount_cents   ?? 0
@@ -116,7 +134,7 @@ export async function refundReservation(reservationId: string, amountCents: numb
   let refundId: string
   try {
     const refund = await getStripe().refunds.create({
-      payment_intent: reservation.stripe_payment_intent_id,
+      payment_intent: piId,
       amount:         amountCents,
       reason:         'requested_by_customer',
     })
