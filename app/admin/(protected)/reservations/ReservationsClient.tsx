@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { useTransition, useState } from 'react'
-import { updateReservationStatus, refundReservation } from '@/app/admin/actions'
+import { useTransition, useState, useEffect, useCallback } from 'react'
+import { updateReservationStatus, editReservation, refundReservation } from '@/app/admin/actions'
 
 interface Craft { id: string; name: string }
 interface Reservation {
@@ -14,7 +14,30 @@ interface Reservation {
   crafts: { name: string; type: string } | null
 }
 interface Filters { status?: string; craftId?: string; from?: string; to?: string }
+interface SlotAvail { hour: number; available: number; blocked: boolean }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const HOURS     = [8,9,10,11,12,13,14,15,16,17]
+const DURATIONS = [1,2,3,4]
+
+function pad(n: number) { return String(n).padStart(2, '0') }
+function localDateStr(iso: string) {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+}
+function localHour(iso: string) { return new Date(iso).getHours() }
+function durationHours(start: string, end: string) {
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 3_600_000)
+}
+function toISO(date: string, hour: number) {
+  return new Date(`${date}T${pad(hour)}:00:00`).toISOString()
+}
+function midnightISO(date: string) {
+  return new Date(`${date}T00:00:00`).toISOString()
+}
+function hourLabel(h: number) {
+  return `${h > 12 ? h-12 : h === 0 ? 12 : h}:00 ${h < 12 ? 'AM' : 'PM'}`
+}
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
@@ -26,7 +49,6 @@ function fmtAmt(cents: number | null | undefined) {
   return `$${(cents / 100).toFixed(2)}`
 }
 function refCode(id: string) { return id.split('-')[0].toUpperCase() }
-
 function payStatusColor(s: string) {
   if (s === 'refunded')           return 'oklch(0.72 0.15 15)'
   if (s === 'partially_refunded') return 'var(--amber)'
@@ -41,6 +63,7 @@ const STATUS_OPTS = [
   { value: 'completed', label: 'Completed'    },
 ]
 
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function ReservationsClient({
   reservations, crafts, filters,
 }: { reservations: Reservation[]; crafts: Craft[]; filters: Filters }) {
@@ -49,11 +72,42 @@ export default function ReservationsClient({
   const [isPending, startTransition] = useTransition()
   const [actionId, setActionId] = useState<string | null>(null)
 
+  // ── Edit panel state ───────────────────────────────────────────────────────
+  const [editing,       setEditing]       = useState<Reservation | null>(null)
+  const [editCraftId,   setEditCraftId]   = useState('')
+  const [editDate,      setEditDate]      = useState('')
+  const [editDuration,  setEditDuration]  = useState(2)
+  const [editHour,      setEditHour]      = useState<number | null>(null)
+  const [editSlots,     setEditSlots]     = useState<SlotAvail[]>([])
+  const [editSlotsLoad, setEditSlotsLoad] = useState(false)
+  const [editError,     setEditError]     = useState<string | null>(null)
+  const [editPending,   setEditPending]   = useState(false)
+
+  // ── Refund panel state ─────────────────────────────────────────────────────
   const [refunding,     setRefunding]     = useState<Reservation | null>(null)
   const [refundAmount,  setRefundAmount]  = useState('')
   const [refundError,   setRefundError]   = useState<string | null>(null)
   const [refundPending, setRefundPending] = useState(false)
 
+  // ── Fetch slots when edit craft / date / duration changes ──────────────────
+  const fetchEditSlots = useCallback(async (craftId: string, date: string, dur: number) => {
+    if (!craftId || !date) { setEditSlots([]); return }
+    setEditSlotsLoad(true)
+    try {
+      const res  = await fetch(
+        `/api/availability/day?craftId=${encodeURIComponent(craftId)}&baseTs=${encodeURIComponent(midnightISO(date))}&duration=${dur}`
+      )
+      const data = await res.json()
+      if (Array.isArray(data.slots)) setEditSlots(data.slots)
+    } catch { setEditSlots([]) }
+    finally  { setEditSlotsLoad(false) }
+  }, [])
+
+  useEffect(() => {
+    if (editing) fetchEditSlots(editCraftId, editDate, editDuration)
+  }, [editing, editCraftId, editDate, editDuration, fetchEditSlots])
+
+  // ── Filter helpers ─────────────────────────────────────────────────────────
   function applyFilters(next: Partial<Filters>) {
     const merged = { ...filters, ...next }
     const params = new URLSearchParams()
@@ -64,11 +118,46 @@ export default function ReservationsClient({
     router.push(`${pathname}?${params.toString()}`)
   }
 
+  // ── Status update ──────────────────────────────────────────────────────────
   function handleStatus(id: string, status: string) {
     setActionId(id)
     startTransition(async () => { await updateReservationStatus(id, status); setActionId(null) })
   }
 
+  // ── Edit handlers ──────────────────────────────────────────────────────────
+  function openEditPanel(r: Reservation) {
+    setEditing(r)
+    setEditCraftId(r.craft_id)
+    setEditDate(localDateStr(r.start_time))
+    setEditDuration(durationHours(r.start_time, r.end_time))
+    setEditHour(localHour(r.start_time))
+    setEditSlots([])
+    setEditError(null)
+  }
+
+  function closeEditPanel() {
+    setEditing(null)
+    setEditError(null)
+    setEditPending(false)
+  }
+
+  async function handleEdit() {
+    if (!editing || editHour === null) return
+    setEditError(null)
+    setEditPending(true)
+
+    const startTime = toISO(editDate, editHour)
+    const endTime   = toISO(editDate, editHour + editDuration)
+
+    const result = await editReservation(editing.id, editCraftId, startTime, endTime)
+    setEditPending(false)
+
+    if (result.error) { setEditError(result.error); return }
+    closeEditPanel()
+    router.refresh()
+  }
+
+  // ── Refund handlers ────────────────────────────────────────────────────────
   function openRefundPanel(r: Reservation) {
     const remaining = (r.amount_cents ?? 0) - (r.refunded_cents ?? 0)
     setRefunding(r)
@@ -94,6 +183,9 @@ export default function ReservationsClient({
     router.refresh()
   }
 
+  const editValidHours = HOURS.filter(h => h + editDuration <= 18)
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
       <div className="adm-topbar">
@@ -136,7 +228,7 @@ export default function ReservationsClient({
           </button>
         </div>
 
-        {/* Cards */}
+        {/* Reservation cards */}
         {reservations.length === 0 ? (
           <p className="adm-empty">No reservations match these filters</p>
         ) : (
@@ -147,16 +239,15 @@ export default function ReservationsClient({
               const remaining     = (r.amount_cents ?? 0) - refundedCents
               const canRefund     = (r.payment_status === 'paid' || r.payment_status === 'partially_refunded')
                                     && remaining > 0
+              const canEdit       = r.status !== 'cancelled' && r.status !== 'completed'
 
               return (
                 <div key={r.id} className="res-card">
-                  {/* Header row */}
                   <div className="res-card-head">
                     <span className="res-ref">{refCode(r.id)}</span>
                     <span className={`badge badge-${r.status}`}>{r.status}</span>
                   </div>
 
-                  {/* Date + craft */}
                   <div className="res-card-main">
                     <div>
                       <div className="res-craft">{r.crafts?.name ?? r.craft_id}</div>
@@ -168,19 +259,17 @@ export default function ReservationsClient({
                     </div>
                   </div>
 
-                  {/* Contact */}
                   <div className="res-contact">
                     {r.customer_phone && <span>{r.customer_phone}</span>}
                     <span>{r.customer_email}</span>
                   </div>
 
-                  {/* Footer: amount + actions */}
                   <div className="res-card-foot">
                     <div className="res-amount-block">
                       <span className="res-amount">{fmtAmt(r.amount_cents)}</span>
                       {r.payment_status && (
                         <span className="res-pay-label" style={{ color: payStatusColor(r.payment_status) }}>
-                          {r.payment_status.replace(/_/g, ' ')}
+                          {r.payment_status.replace(/_/g, ' ')}
                         </span>
                       )}
                       {refundedCents > 0 && (
@@ -191,6 +280,12 @@ export default function ReservationsClient({
                     </div>
 
                     <div className="adm-actions-row">
+                      {canEdit && (
+                        <button className="adm-btn adm-btn-ghost adm-btn-sm"
+                          onClick={() => openEditPanel(r)}>
+                          Edit
+                        </button>
+                      )}
                       {r.status === 'confirmed' && (
                         <button className="adm-btn adm-btn-ghost adm-btn-sm" disabled={busy}
                           onClick={() => handleStatus(r.id, 'completed')}>
@@ -219,7 +314,109 @@ export default function ReservationsClient({
         )}
       </div>
 
-      {/* Refund panel */}
+      {/* ── Edit panel ──────────────────────────────────────────────────────── */}
+      {editing && (
+        <>
+          <div className="adm-overlay" onClick={closeEditPanel} aria-hidden="true" />
+          <div className="adm-edit-panel" role="dialog" aria-label="Edit reservation">
+
+            <div className="adm-refund-head">
+              <span className="adm-edit-title">Edit Reservation</span>
+              <button className="adm-side-close" onClick={closeEditPanel} aria-label="Close">×</button>
+            </div>
+
+            <p className="adm-refund-meta" style={{ marginBottom: '1rem' }}>
+              <strong>{editing.customer_name}</strong>{' · '}Ref {refCode(editing.id)}
+            </p>
+
+            <div className="adm-edit-grid">
+              {/* Craft */}
+              <div className="adm-field">
+                <label className="adm-label">Craft</label>
+                <select className="adm-select" value={editCraftId}
+                  onChange={e => { setEditCraftId(e.target.value); setEditHour(null) }}>
+                  {crafts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
+              {/* Date */}
+              <div className="adm-field">
+                <label className="adm-label">Date</label>
+                <input type="date" className="adm-input" value={editDate}
+                  onChange={e => { setEditDate(e.target.value); setEditHour(null) }} />
+              </div>
+            </div>
+
+            {/* Duration */}
+            <div className="adm-field" style={{ marginTop: '.75rem' }}>
+              <label className="adm-label">Duration</label>
+              <div className="adm-dur-pills">
+                {DURATIONS.map(d => (
+                  <button key={d} type="button"
+                    className={`adm-dur-pill${editDuration === d ? ' active' : ''}`}
+                    onClick={() => { setEditDuration(d); setEditHour(null) }}>
+                    {d} hr
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Slot grid */}
+            <div className="adm-field" style={{ marginTop: '.75rem' }}>
+              <label className="adm-label">
+                Start time
+                {editSlotsLoad && (
+                  <span style={{ fontWeight: 400, color: 'oklch(0.85 0.015 85 / .35)', marginLeft: '.5rem' }}>
+                    checking…
+                  </span>
+                )}
+              </label>
+              {!editDate ? (
+                <p className="adm-edit-hint">Pick a date to see available times</p>
+              ) : (
+                <div className="adm-slot-grid">
+                  {editValidHours.map(h => {
+                    const slot      = editSlots.find(s => s.hour === h)
+                    const available = slot?.available ?? (editSlotsLoad ? 99 : 0)
+                    const blocked   = slot?.blocked   ?? false
+                    const isDisabled = !editSlotsLoad && (available === 0 || blocked)
+                    const isFew      = !editSlotsLoad && !isDisabled && available === 1
+
+                    return (
+                      <button
+                        key={h} type="button"
+                        className={`adm-slot${editHour === h ? ' active' : ''}${isFew ? ' few' : ''}${isDisabled ? ' disabled' : ''}${editSlotsLoad ? ' loading' : ''}`}
+                        disabled={isDisabled}
+                        title={blocked ? 'Blocked' : available === 0 ? 'Fully booked' : undefined}
+                        onClick={() => { setEditHour(h); setEditError(null) }}
+                      >
+                        {hourLabel(h)}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {editError && (
+              <p className="adm-error" style={{ marginTop: '.5rem' }}>{editError}</p>
+            )}
+
+            <div className="adm-actions-row" style={{ marginTop: '1rem' }}>
+              <button className="adm-btn" onClick={handleEdit}
+                disabled={editPending || editHour === null || !editDate}>
+                {editPending ? 'Saving…' : 'Save changes'}
+              </button>
+              <button className="adm-btn adm-btn-ghost" onClick={closeEditPanel} disabled={editPending}>
+                Cancel
+              </button>
+            </div>
+
+          </div>
+        </>
+      )}
+
+      {/* ── Refund panel ────────────────────────────────────────────────────── */}
       {refunding && (
         <>
           <div className="adm-overlay" onClick={closeRefundPanel} aria-hidden="true" />

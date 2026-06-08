@@ -91,6 +91,29 @@ export async function deleteBlock(id: string) {
   return {}
 }
 
+// ── Reservation edit ──────────────────────────────────────────────────────────
+export async function editReservation(
+  reservationId: string,
+  craftId: string,
+  startTime: string,
+  endTime: string,
+) {
+  const supabase = await requireAdmin()
+
+  const { data, error } = await supabase.rpc('update_reservation', {
+    p_reservation_id: reservationId,
+    p_craft_id:       craftId,
+    p_start_time:     startTime,
+    p_end_time:       endTime,
+  })
+
+  if (error) return { error: error.message }
+  if (data?.error) return { error: data.message ?? data.error }
+
+  revalidatePath('/admin/reservations')
+  return {}
+}
+
 // ── Refunds ───────────────────────────────────────────────────────────────────
 export async function refundReservation(reservationId: string, amountCents: number) {
   const supabase = await requireAdmin()
