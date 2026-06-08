@@ -20,17 +20,21 @@ export interface Craft {
 }
 
 export interface Reservation {
-  id:             string
-  craft_id:       string
-  customer_name:  string
-  customer_email: string
-  customer_phone: string | null
-  start_time:     string    // ISO 8601
-  end_time:       string
-  status:         ReservationStatus
-  notes:          string | null
-  expires_at:     string
-  created_at:     string
+  id:                       string
+  craft_id:                 string
+  customer_name:            string
+  customer_email:           string
+  customer_phone:           string | null
+  start_time:               string    // ISO 8601
+  end_time:                 string
+  status:                   ReservationStatus
+  notes:                    string | null
+  expires_at:               string
+  created_at:               string
+  stripe_session_id?:       string
+  stripe_payment_intent_id?: string
+  payment_status?:          string
+  amount_cents?:            number | null
 }
 
 export interface AvailabilityBlock {

@@ -121,6 +121,7 @@ export async function POST(req: NextRequest) {
             status:                    'confirmed',
             payment_status:            'paid',
             stripe_payment_intent_id:  paymentIntentId,
+            amount_cents:              session.amount_total ?? null,
           })
           .eq('id', reservationId)
           .eq('status', 'pending')   // ← idempotency guard
