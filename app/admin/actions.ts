@@ -114,6 +114,77 @@ export async function editReservation(
   return {}
 }
 
+// ── Payment link for admin-created reservations ───────────────────────────────
+export async function generatePaymentLink(reservationId: string) {
+  const supabase = await requireAdmin()
+
+  const { data: res, error: fetchErr } = await supabase
+    .from('reservations')
+    .select('id, craft_id, start_time, end_time, customer_name, customer_email, payment_status, crafts(id, name, type, class_label, seats, hourly_rate)')
+    .eq('id', reservationId)
+    .single()
+
+  if (fetchErr || !res) return { error: 'Reservation not found' }
+  if (res.payment_status === 'paid') return { error: 'Reservation is already paid' }
+
+  const craft = res.crafts as unknown as {
+    id: string; name: string; type: string
+    class_label: string; seats: number; hourly_rate: number | null
+  } | null
+
+  if (!craft?.hourly_rate) return { error: 'No rate set for this craft — set one in Crafts first' }
+
+  const durationHours = (new Date(res.end_time).getTime() - new Date(res.start_time).getTime()) / 3_600_000
+  const amountCents   = Math.round(craft.hourly_rate * durationHours * 100)
+  if (amountCents < 50) return { error: 'Amount is below the Stripe minimum for card payment' }
+
+  const origin  = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pachecowatersports.com'
+  const typeStr = craft.type === 'ski' ? 'Jet Ski' : craft.class_label === 'CRUISE' ? 'Pontoon' : 'Boat'
+  const timeStr = `${new Date(res.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${durationHours}hr`
+  const customerEmail = res.customer_email && res.customer_email !== 'noemail'
+    ? res.customer_email : undefined
+
+  let session
+  try {
+    session = await getStripe().checkout.sessions.create({
+      mode:                 'payment',
+      payment_method_types: ['card'],
+      ...(customerEmail ? { customer_email: customerEmail } : {}),
+      line_items: [{
+        price_data: {
+          currency:    'usd',
+          unit_amount: amountCents,
+          product_data: {
+            name:        `${craft.name} ${typeStr} Rental`,
+            description: `${timeStr} · ${craft.seats} ${craft.type === 'ski' ? 'riders' : 'passengers'}`,
+          },
+        },
+        quantity: 1,
+      }],
+      metadata: {
+        reservation_id: reservationId,
+        craft_name:     craft.name,
+        craft_type:     craft.type ?? '',
+        craft_class:    craft.class_label ?? '',
+        start_time:     res.start_time,
+        end_time:       res.end_time,
+        duration_hours: String(durationHours),
+        customer_name:  res.customer_name,
+      },
+      success_url: `${origin}/book/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${origin}/`,
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown Stripe error'
+    return { error: `Stripe error: ${msg}` }
+  }
+
+  // Store the session ID so the webhook can locate this reservation on payment
+  await supabase.from('reservations').update({ stripe_session_id: session.id }).eq('id', reservationId)
+
+  return { url: session.url! }
+}
+
 // ── Admin phone-in bookings ───────────────────────────────────────────────────
 export async function createAdminReservation(data: {
   craftId: string

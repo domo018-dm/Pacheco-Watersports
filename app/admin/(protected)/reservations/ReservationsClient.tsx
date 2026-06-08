@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { useTransition, useState, useEffect, useCallback } from 'react'
-import { updateReservationStatus, editReservation, refundReservation } from '@/app/admin/actions'
+import { updateReservationStatus, editReservation, refundReservation, generatePaymentLink } from '@/app/admin/actions'
 
 interface Craft { id: string; name: string }
 interface Reservation {
@@ -83,6 +83,11 @@ export default function ReservationsClient({
   const [editError,     setEditError]     = useState<string | null>(null)
   const [editPending,   setEditPending]   = useState(false)
 
+  // ── Pay link panel state ───────────────────────────────────────────────────
+  const [payLink,        setPayLink]        = useState<{ name: string; url?: string; error?: string } | null>(null)
+  const [payLinkPending, setPayLinkPending] = useState<string | null>(null)
+  const [copied,         setCopied]         = useState(false)
+
   // ── Refund panel state ─────────────────────────────────────────────────────
   const [refunding,     setRefunding]     = useState<Reservation | null>(null)
   const [refundAmount,  setRefundAmount]  = useState('')
@@ -155,6 +160,29 @@ export default function ReservationsClient({
     if (result.error) { setEditError(result.error); return }
     closeEditPanel()
     router.refresh()
+  }
+
+  // ── Pay link handler ──────────────────────────────────────────────────────
+  async function handleGeneratePayLink(r: Reservation) {
+    setPayLinkPending(r.id)
+    const result = await generatePaymentLink(r.id)
+    setPayLinkPending(null)
+    setPayLink({ name: r.customer_name, ...result })
+    setCopied(false)
+  }
+
+  function closePayLink() { setPayLink(null); setCopied(false) }
+
+  async function shareOrCopy(url: string) {
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ url, title: 'Complete your Pacheco Watersports booking' })
+        return
+      } catch { /* user cancelled share sheet — fall through to clipboard */ }
+    }
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
   }
 
   // ── Refund handlers ────────────────────────────────────────────────────────
@@ -245,6 +273,7 @@ export default function ReservationsClient({
               const canRefund     = (r.payment_status === 'paid' || r.payment_status === 'partially_refunded')
                                     && remaining > 0
               const canEdit       = r.status !== 'cancelled' && r.status !== 'completed'
+              const canPayLink    = r.status === 'confirmed' && !r.payment_status
 
               return (
                 <div key={r.id} className="res-card">
@@ -291,6 +320,15 @@ export default function ReservationsClient({
                           Edit
                         </button>
                       )}
+                      {canPayLink && (
+                        <button
+                          className="adm-btn adm-btn-ghost adm-btn-sm"
+                          style={{ borderColor: 'var(--water)', color: 'var(--water)' }}
+                          disabled={payLinkPending === r.id}
+                          onClick={() => handleGeneratePayLink(r)}>
+                          {payLinkPending === r.id ? '…' : 'Pay link'}
+                        </button>
+                      )}
                       {r.status === 'confirmed' && (
                         <button className="adm-btn adm-btn-ghost adm-btn-sm" disabled={busy}
                           onClick={() => handleStatus(r.id, 'completed')}>
@@ -318,6 +356,43 @@ export default function ReservationsClient({
           </div>
         )}
       </div>
+
+      {/* ── Pay link panel ──────────────────────────────────────────────────── */}
+      {payLink && (
+        <>
+          <div className="adm-overlay" onClick={closePayLink} aria-hidden="true" />
+          <div className="adm-paylink-panel" role="dialog" aria-label="Payment link">
+            <div className="adm-refund-head">
+              <span className="adm-paylink-title">Payment Link</span>
+              <button className="adm-side-close" onClick={closePayLink} aria-label="Close">×</button>
+            </div>
+            {payLink.error ? (
+              <p className="adm-error">{payLink.error}</p>
+            ) : (
+              <>
+                <p className="adm-refund-meta">
+                  For <strong>{payLink.name}</strong> — send this link so they can pay by card.
+                  Link expires in 24 hours.
+                </p>
+                <div className="adm-paylink-row">
+                  <input
+                    readOnly
+                    className="adm-input adm-paylink-url"
+                    value={payLink.url}
+                    onFocus={e => e.target.select()}
+                  />
+                  <button
+                    className="adm-btn adm-btn-sm"
+                    style={{ flexShrink: 0 }}
+                    onClick={() => shareOrCopy(payLink.url!)}>
+                    {copied ? 'Copied!' : typeof navigator !== 'undefined' && 'share' in navigator ? 'Share' : 'Copy'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       {/* ── Edit panel ──────────────────────────────────────────────────────── */}
       {editing && (

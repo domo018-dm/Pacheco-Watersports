@@ -924,6 +924,28 @@ a { color: inherit; text-decoration: none; }
 }
 .adm-back-link:hover { color: var(--bone); }
 
+/* ── Pay link panel ── */
+.adm-paylink-panel {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+  background: oklch(0.14 0.012 240); border-top: 2px solid var(--water);
+  padding: 1.25rem 1.5rem 1.75rem;
+  box-shadow: 0 -12px 60px oklch(0 0 0 / .6);
+  animation: rfp-up .22s ease;
+}
+@media (min-width: 768px) { .adm-paylink-panel { left: 210px; } }
+.adm-paylink-title {
+  font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--water);
+}
+.adm-paylink-row {
+  display: flex; align-items: center; gap: .75rem; margin-top: .75rem;
+}
+.adm-paylink-url {
+  flex: 1 1 0; min-width: 0;
+  font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: oklch(0.85 0.015 85 / .6);
+}
+
 /* ── Refund panel ── */
 .adm-refund-panel {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
