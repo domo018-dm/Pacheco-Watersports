@@ -108,9 +108,11 @@ export async function POST(req: NextRequest) {
 
   // ── 3. Build success/cancel URLs ─────────────────────────────────────────────
   // Derive origin from request so no extra env var is needed for local or prod.
-  const host   = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3002'
-  const proto  = host.startsWith('localhost') ? 'http' : 'https'
-  const origin = `${proto}://${host}`
+  const origin = process.env.NEXT_PUBLIC_SITE_URL
+    ?? (() => {
+      const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? ''
+      return `${host.startsWith('localhost') ? 'http' : 'https'}://${host}`
+    })()
 
   // ── 4. Create Stripe Checkout Session ────────────────────────────────────────
   const stripe  = getStripe()
