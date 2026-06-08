@@ -132,9 +132,10 @@ export default function ReserveModal({ craft, onClose }: Props) {
           craft_not_found:    'Craft not found. Close and try again.',
           craft_not_bookable: data.message ?? 'This craft isn\'t available online. Call us.',
           stripe_error:       data.message ?? 'Payment setup failed. Please try again.',
+          server_error:       data.message ?? 'Something went wrong. Call us at (505) 573-9275.',
           db_error:           'Something went wrong. Call us at (505) 573-9275.',
         }
-        setFormError(messages[data.error] ?? data.message ?? 'Something went wrong.')
+        setFormError(messages[data.error] ?? data.message ?? 'Something went wrong. Call us at (505) 573-9275.')
         fetchSlots()
         return
       }

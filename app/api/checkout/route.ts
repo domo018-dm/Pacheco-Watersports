@@ -33,6 +33,18 @@ function validateBody(raw: unknown): { data: Body } | { error: string } {
 }
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handleCheckout(req)
+  } catch (err) {
+    console.error('[POST /api/checkout] unhandled error:', err)
+    return NextResponse.json(
+      { error: 'server_error', message: 'Something went wrong on our end. Please try again or call us at (505) 573-9275.' },
+      { status: 500 }
+    )
+  }
+}
+
+async function handleCheckout(req: NextRequest) {
   let raw: unknown
   try { raw = await req.json() } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }) }
 
@@ -155,16 +167,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'stripe_error', message: 'Payment setup failed. Your hold will release automatically. Please try again or call us.' }, { status: 502 })
   }
 
-  // ── 5. Attach Stripe session ID to reservation (service role — anon has no UPDATE policy) ──
-  const serviceClient = createServiceClient()
-  const { error: updateErr } = await serviceClient
-    .from('reservations')
-    .update({ stripe_session_id: session.id })
-    .eq('id', reservationId)
-
-  if (updateErr) {
-    // Non-fatal: the reservation exists and the webhook will still work via metadata.reservation_id
-    console.error('[POST /api/checkout] Failed to attach session ID:', updateErr.message)
+  // ── 5. Attach Stripe session ID to reservation (non-fatal) ──────────────────
+  // The webhook uses metadata.reservation_id so this is convenience-only.
+  // If the service client throws (missing env var) or the UPDATE fails, we still
+  // redirect the user to Stripe — do NOT let this block the payment.
+  try {
+    const serviceClient = createServiceClient()
+    const { error: updateErr } = await serviceClient
+      .from('reservations')
+      .update({ stripe_session_id: session.id })
+      .eq('id', reservationId)
+    if (updateErr) {
+      console.error('[POST /api/checkout] Failed to attach session ID:', updateErr.message)
+    }
+  } catch (attachErr) {
+    console.error('[POST /api/checkout] attach session ID threw:', attachErr)
   }
 
   return NextResponse.json({ url: session.url })
