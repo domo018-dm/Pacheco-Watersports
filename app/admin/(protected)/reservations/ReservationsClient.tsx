@@ -273,7 +273,7 @@ export default function ReservationsClient({
               const canRefund     = (r.payment_status === 'paid' || r.payment_status === 'partially_refunded')
                                     && remaining > 0
               const canEdit       = r.status !== 'cancelled' && r.status !== 'completed'
-              const canPayLink    = r.status === 'confirmed' && !r.payment_status
+              const canPayLink    = r.status === 'confirmed' && (r.payment_status === 'unpaid' || !r.payment_status)
 
               return (
                 <div key={r.id} className="res-card">
