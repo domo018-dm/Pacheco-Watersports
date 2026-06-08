@@ -35,7 +35,8 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
   const [uploading,    setUploading]    = useState(false)
   const [saving,       setSaving]       = useState(false)
   const [error,        setError]        = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const fileRef   = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
   function onNameChange(val: string) {
     setName(val)
@@ -173,22 +174,34 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
           {/* Image upload */}
           <div className="adm-field">
             <label className="adm-label">Photo</label>
-            <div className="adm-upload-area" onClick={() => fileRef.current?.click()}>
+
+            {imagePreview && (
+              <Image src={imagePreview} alt="preview" width={560} height={220}
+                style={{ objectFit: 'cover', width: '100%', height: 220, display: 'block', marginBottom: '.5rem' }} />
+            )}
+
+            <div className="adm-upload-area" style={{ padding: '1rem' }}>
               <p className="adm-upload-hint">
-                {uploading ? 'Uploading…' : 'Click to select image (JPEG / PNG / WebP, max 5 MB)'}
+                {uploading ? 'Uploading…' : imagePreview ? 'Replace photo' : 'JPEG · PNG · WebP · max 5 MB'}
               </p>
-              {imagePreview && (
-                <Image src={imagePreview} alt="preview" width={560} height={200}
-                  className="adm-img-preview" style={{ objectFit: 'cover' }} />
-              )}
+              <div className="adm-upload-btns">
+                <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm"
+                  onClick={() => fileRef.current?.click()}>
+                  Choose file
+                </button>
+                <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm"
+                  onClick={() => cameraRef.current?.click()}>
+                  Take photo
+                </button>
+              </div>
             </div>
+
+            {/* Standard file picker */}
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
               style={{ display: 'none' }} onChange={onFileSelect} />
-            {imageUrl && !imageFile && (
-              <p style={{ fontSize: '.72rem', color: 'oklch(0.85 0.015 85 / .4)', marginTop: '.3rem', fontFamily: 'var(--ff-mono)' }}>
-                Current: {imageUrl}
-              </p>
-            )}
+            {/* Camera capture — opens rear camera on mobile */}
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+              style={{ display: 'none' }} onChange={onFileSelect} />
           </div>
 
           <div className="adm-actions-row" style={{ marginTop: '.5rem' }}>
