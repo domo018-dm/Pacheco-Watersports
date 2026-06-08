@@ -54,8 +54,9 @@ async function sendConfirmationEmail(session: Stripe.Checkout.Session) {
 
   const fromEmail = process.env.RESEND_FROM_ADDRESS ?? 'bookings@pachecowatersports.com'
   const from = `Pacheco Watersports <${fromEmail}>`
+  const ownerBcc = ['pachecorentals505@gmail.com', 'quecybersolutions@gmail.com']
 
-  const { error } = await getResend().emails.send({ from, to, subject, html, text })
+  const { error } = await getResend().emails.send({ from, to, subject, html, text, bcc: ownerBcc })
 
   if (error) {
     // Non-fatal: reservation is already confirmed. Log for ops visibility but
