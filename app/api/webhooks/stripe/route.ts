@@ -214,6 +214,50 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      // ── Refund from Stripe dashboard or API ──────────────────────────────
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge
+        // In webhook payloads payment_intent is always the PI ID string (never expanded).
+        // The union type includes PaymentIntent only for API responses with ?expand[].
+        const piId = typeof charge.payment_intent === 'string'
+          ? charge.payment_intent
+          : (charge.payment_intent as { id: string } | null)?.id ?? null
+
+        if (!piId) {
+          console.log('[webhook] charge.refunded: no payment_intent on charge, skipping', charge.id)
+          break
+        }
+
+        // amount_refunded is the Stripe-authoritative cumulative total — idempotent to set.
+        const amountRefunded = charge.amount_refunded
+        const isFullRefund   = charge.refunded
+
+        const { error, data: updated } = await db
+          .from('reservations')
+          .update({
+            refunded_cents: amountRefunded,
+            payment_status: isFullRefund ? 'refunded' : 'partially_refunded',
+            ...(isFullRefund ? { status: 'cancelled' } : {}),
+          })
+          .eq('stripe_payment_intent_id', piId)
+          .select('id')
+
+        if (error) {
+          console.error('[webhook] charge.refunded: DB error:', error.message)
+          return NextResponse.json({ error: 'db_error' }, { status: 500 })
+        }
+
+        if (!updated || updated.length === 0) {
+          // No matching reservation — could be a test charge or a different integration.
+          console.log('[webhook] charge.refunded: no matching reservation for PI:', piId)
+        } else {
+          console.log(
+            `[webhook] refund recorded — PI ${piId}, refunded_cents: ${amountRefunded}, full: ${isFullRefund}`
+          )
+        }
+        break
+      }
+
       default:
         // Unhandled event type — return 200 so Stripe doesn't retry
         break

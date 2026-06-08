@@ -2,28 +2,36 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { useTransition, useState } from 'react'
-import { updateReservationStatus } from '@/app/admin/actions'
+import { updateReservationStatus, refundReservation } from '@/app/admin/actions'
 
 interface Craft { id: string; name: string }
 interface Reservation {
   id: string; craft_id: string; customer_name: string; customer_email: string
   customer_phone: string | null; start_time: string; end_time: string
   status: string; payment_status: string | null; amount_cents: number | null
+  refunded_cents: number | null; stripe_payment_intent_id: string | null
   created_at: string
   crafts: { name: string; type: string } | null
 }
 interface Filters { status?: string; craftId?: string; from?: string; to?: string }
 
-function fmt(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
-function fmtAmt(cents: number | null) {
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+function fmtAmt(cents: number | null | undefined) {
   if (cents == null) return '—'
-  return `$${(cents / 100).toFixed(0)}`
+  return `$${(cents / 100).toFixed(2)}`
 }
 function refCode(id: string) { return id.split('-')[0].toUpperCase() }
+
+function payStatusColor(s: string) {
+  if (s === 'refunded')           return 'oklch(0.72 0.15 15)'
+  if (s === 'partially_refunded') return 'var(--amber)'
+  return 'oklch(0.85 0.015 85 / .4)'
+}
 
 const STATUS_OPTS = [
   { value: '',          label: 'All statuses' },
@@ -41,6 +49,11 @@ export default function ReservationsClient({
   const [isPending, startTransition] = useTransition()
   const [actionId, setActionId] = useState<string | null>(null)
 
+  const [refunding,     setRefunding]     = useState<Reservation | null>(null)
+  const [refundAmount,  setRefundAmount]  = useState('')
+  const [refundError,   setRefundError]   = useState<string | null>(null)
+  const [refundPending, setRefundPending] = useState(false)
+
   function applyFilters(next: Partial<Filters>) {
     const merged = { ...filters, ...next }
     const params = new URLSearchParams()
@@ -53,10 +66,32 @@ export default function ReservationsClient({
 
   function handleStatus(id: string, status: string) {
     setActionId(id)
-    startTransition(async () => {
-      await updateReservationStatus(id, status)
-      setActionId(null)
-    })
+    startTransition(async () => { await updateReservationStatus(id, status); setActionId(null) })
+  }
+
+  function openRefundPanel(r: Reservation) {
+    const remaining = (r.amount_cents ?? 0) - (r.refunded_cents ?? 0)
+    setRefunding(r)
+    setRefundAmount((remaining / 100).toFixed(2))
+    setRefundError(null)
+  }
+  function closeRefundPanel() { setRefunding(null); setRefundError(null); setRefundPending(false) }
+
+  async function handleRefund() {
+    if (!refunding) return
+    setRefundError(null)
+    const amountCents = Math.round(parseFloat(refundAmount) * 100)
+    const remaining   = (refunding.amount_cents ?? 0) - (refunding.refunded_cents ?? 0)
+    if (isNaN(amountCents) || amountCents <= 0 || amountCents > remaining) {
+      setRefundError(`Enter an amount between $0.01 and ${fmtAmt(remaining)}`)
+      return
+    }
+    setRefundPending(true)
+    const result = await refundReservation(refunding.id, amountCents)
+    setRefundPending(false)
+    if (result.error) { setRefundError(result.error); return }
+    closeRefundPanel()
+    router.refresh()
   }
 
   return (
@@ -96,76 +131,141 @@ export default function ReservationsClient({
             <input type="date" className="adm-input" value={filters.to ?? ''}
               onChange={e => applyFilters({ to: e.target.value || undefined })} />
           </div>
-          <button className="adm-btn adm-btn-ghost adm-btn-sm"
-            onClick={() => router.push(pathname)}>
+          <button className="adm-btn adm-btn-ghost adm-btn-sm" onClick={() => router.push(pathname)}>
             Reset
           </button>
         </div>
 
-        {/* Table */}
+        {/* Cards */}
         {reservations.length === 0 ? (
           <p className="adm-empty">No reservations match these filters</p>
         ) : (
-          <div className="adm-table-wrap">
-            <table className="adm-table">
-              <thead>
-                <tr>
-                  <th>Ref</th><th>Time</th><th>Craft</th>
-                  <th>Customer</th><th>Phone</th><th>Email</th>
-                  <th>Paid</th><th>Status</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reservations.map(r => {
-                  const busy = actionId === r.id && isPending
-                  return (
-                    <tr key={r.id}>
-                      <td style={{ fontFamily: 'var(--ff-mono)', fontSize: '.72rem', color: 'var(--amber)', letterSpacing: '.1em' }}>
-                        {refCode(r.id)}
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <span>{fmt(r.start_time)}</span>
-                        <span style={{ color: 'oklch(0.85 0.015 85 / .4)', display: 'block', fontSize: '.78rem' }}>
-                          → {new Date(r.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          <div className="res-list">
+            {reservations.map(r => {
+              const busy          = actionId === r.id && isPending
+              const refundedCents = r.refunded_cents ?? 0
+              const remaining     = (r.amount_cents ?? 0) - refundedCents
+              const canRefund     = (r.payment_status === 'paid' || r.payment_status === 'partially_refunded')
+                                    && remaining > 0 && !!r.stripe_payment_intent_id
+
+              return (
+                <div key={r.id} className="res-card">
+                  {/* Header row */}
+                  <div className="res-card-head">
+                    <span className="res-ref">{refCode(r.id)}</span>
+                    <span className={`badge badge-${r.status}`}>{r.status}</span>
+                  </div>
+
+                  {/* Date + craft */}
+                  <div className="res-card-main">
+                    <div>
+                      <div className="res-craft">{r.crafts?.name ?? r.craft_id}</div>
+                      <div className="res-customer-name">{r.customer_name}</div>
+                    </div>
+                    <div className="res-time-block">
+                      <div className="res-date">{fmtDate(r.start_time)}</div>
+                      <div className="res-time">{fmtTime(r.start_time)} – {fmtTime(r.end_time)}</div>
+                    </div>
+                  </div>
+
+                  {/* Contact */}
+                  <div className="res-contact">
+                    {r.customer_phone && <span>{r.customer_phone}</span>}
+                    <span>{r.customer_email}</span>
+                  </div>
+
+                  {/* Footer: amount + actions */}
+                  <div className="res-card-foot">
+                    <div className="res-amount-block">
+                      <span className="res-amount">{fmtAmt(r.amount_cents)}</span>
+                      {r.payment_status && (
+                        <span className="res-pay-label" style={{ color: payStatusColor(r.payment_status) }}>
+                          {r.payment_status.replace(/_/g, ' ')}
                         </span>
-                      </td>
-                      <td>{r.crafts?.name ?? r.craft_id}</td>
-                      <td>{r.customer_name}</td>
-                      <td style={{ fontSize: '.82rem' }}>{r.customer_phone ?? '—'}</td>
-                      <td style={{ fontSize: '.82rem' }}>{r.customer_email}</td>
-                      <td style={{ fontFamily: 'var(--ff-mono)', fontSize: '.82rem' }}>
-                        {fmtAmt(r.amount_cents)}
-                        {r.payment_status && (
-                          <span style={{ display: 'block', fontSize: '.65rem', color: 'oklch(0.85 0.015 85 / .4)', letterSpacing: '.08em' }}>
-                            {r.payment_status}
-                          </span>
-                        )}
-                      </td>
-                      <td><span className={`badge badge-${r.status}`}>{r.status}</span></td>
-                      <td>
-                        <div className="adm-actions-row">
-                          {r.status === 'confirmed' && (
-                            <button className="adm-btn adm-btn-ghost adm-btn-sm" disabled={busy}
-                              onClick={() => handleStatus(r.id, 'completed')}>
-                              {busy ? '…' : 'Complete'}
-                            </button>
-                          )}
-                          {(r.status === 'pending' || r.status === 'confirmed') && (
-                            <button className="adm-btn adm-btn-danger adm-btn-sm" disabled={busy}
-                              onClick={() => { if (confirm('Cancel this reservation?')) handleStatus(r.id, 'cancelled') }}>
-                              {busy ? '…' : 'Cancel'}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                      )}
+                      {refundedCents > 0 && (
+                        <span className="res-pay-label" style={{ color: 'oklch(0.72 0.15 15)' }}>
+                          −{fmtAmt(refundedCents)} refunded
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="adm-actions-row">
+                      {r.status === 'confirmed' && (
+                        <button className="adm-btn adm-btn-ghost adm-btn-sm" disabled={busy}
+                          onClick={() => handleStatus(r.id, 'completed')}>
+                          {busy ? '…' : 'Complete'}
+                        </button>
+                      )}
+                      {canRefund && (
+                        <button className="adm-btn adm-btn-ghost adm-btn-sm"
+                          style={{ borderColor: 'oklch(0.72 0.15 15 / .6)', color: 'oklch(0.72 0.15 15)' }}
+                          onClick={() => openRefundPanel(r)}>
+                          Refund
+                        </button>
+                      )}
+                      {(r.status === 'pending' || r.status === 'confirmed') && (
+                        <button className="adm-btn adm-btn-danger adm-btn-sm" disabled={busy}
+                          onClick={() => { if (confirm('Cancel this reservation?')) handleStatus(r.id, 'cancelled') }}>
+                          {busy ? '…' : 'Cancel'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
+
+      {/* Refund panel */}
+      {refunding && (
+        <>
+          <div className="adm-overlay" onClick={closeRefundPanel} aria-hidden="true" />
+          <div className="adm-refund-panel" role="dialog" aria-label="Issue refund">
+            <div className="adm-refund-head">
+              <span className="adm-refund-title">Issue Refund</span>
+              <button className="adm-side-close" onClick={closeRefundPanel} aria-label="Close">×</button>
+            </div>
+            <p className="adm-refund-meta">
+              <strong>{refunding.customer_name}</strong>{' · '}
+              {refunding.crafts?.name ?? refunding.craft_id}{' · '}
+              Ref {refCode(refunding.id)}{' · '}
+              {fmtDate(refunding.start_time)}
+            </p>
+            <div className="adm-refund-amounts">
+              <span>Paid: <strong>{fmtAmt(refunding.amount_cents)}</strong></span>
+              {(refunding.refunded_cents ?? 0) > 0 && (
+                <span style={{ color: 'oklch(0.72 0.15 15)' }}>
+                  Already refunded: <strong>{fmtAmt(refunding.refunded_cents)}</strong>
+                </span>
+              )}
+              <span style={{ color: 'var(--amber)' }}>
+                Remaining: <strong>{fmtAmt((refunding.amount_cents ?? 0) - (refunding.refunded_cents ?? 0))}</strong>
+              </span>
+            </div>
+            <div className="adm-refund-row">
+              <div className="adm-field" style={{ flex: '1 1 160px', maxWidth: 240 }}>
+                <label className="adm-label">Amount ($)</label>
+                <input type="number" className="adm-input" min="0.01" step="0.01"
+                  value={refundAmount}
+                  onChange={e => { setRefundAmount(e.target.value); setRefundError(null) }}
+                  disabled={refundPending} />
+              </div>
+              <div className="adm-actions-row" style={{ paddingBottom: '1px' }}>
+                <button className="adm-btn adm-btn-danger" onClick={handleRefund} disabled={refundPending}>
+                  {refundPending ? 'Processing…' : 'Issue refund'}
+                </button>
+                <button className="adm-btn adm-btn-ghost" onClick={closeRefundPanel} disabled={refundPending}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+            {refundError && <p className="adm-error" style={{ marginTop: '.75rem' }}>{refundError}</p>}
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -13,10 +13,10 @@ interface Block {
 function fmtRange(start: string, end: string) {
   const s = new Date(start), e = new Date(end)
   const sameDay = s.toDateString() === e.toDateString()
-  const dateOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }
+  const dateOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
   const timeOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' }
   if (sameDay) {
-    return `${s.toLocaleDateString('en-US', dateOpts)} · ${s.toLocaleTimeString('en-US', timeOpts)} – ${e.toLocaleTimeString('en-US', timeOpts)}`
+    return `${s.toLocaleDateString('en-US', { ...dateOpts, year: 'numeric' })} · ${s.toLocaleTimeString('en-US', timeOpts)} – ${e.toLocaleTimeString('en-US', timeOpts)}`
   }
   return `${s.toLocaleDateString('en-US', dateOpts)} ${s.toLocaleTimeString('en-US', timeOpts)} → ${e.toLocaleDateString('en-US', dateOpts)} ${e.toLocaleTimeString('en-US', timeOpts)}`
 }
@@ -25,8 +25,7 @@ export default function BlocksManager({ blocks, crafts }: { blocks: Block[]; cra
   const [isPending, startTransition] = useTransition()
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  // Form state
-  const [craftId,   setCraftId]   = useState<string>('')      // '' = all crafts
+  const [craftId,   setCraftId]   = useState<string>('')
   const [reason,    setReason]    = useState('')
   const [startDt,   setStartDt]   = useState('')
   const [endDt,     setEndDt]     = useState('')
@@ -58,7 +57,7 @@ export default function BlocksManager({ blocks, crafts }: { blocks: Block[]; cra
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2.5rem' }}>
+    <div style={{ display: 'grid', gap: '2.5rem' }}>
 
       {/* Create form */}
       <div>
@@ -66,7 +65,7 @@ export default function BlocksManager({ blocks, crafts }: { blocks: Block[]; cra
         <form onSubmit={handleCreate} className="adm-form" style={{ maxWidth: 560 }}>
           {formError && <p className="adm-error">{formError}</p>}
           <div className="adm-field">
-            <label className="adm-label">Craft (leave blank for all crafts)</label>
+            <label className="adm-label">Craft (leave blank to block all)</label>
             <select className="adm-select" value={craftId} onChange={e => setCraftId(e.target.value)}>
               <option value="">— All crafts (site-wide closure) —</option>
               {crafts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -94,54 +93,38 @@ export default function BlocksManager({ blocks, crafts }: { blocks: Block[]; cra
           </button>
         </form>
         <p style={{ marginTop: '.75rem', fontFamily: 'var(--ff-mono)', fontSize: '.68rem', color: 'oklch(0.85 0.015 85 / .4)' }}>
-          Blocked slots are immediately hidden from public booking — no code restart needed.
+          Blocked slots are immediately hidden from public booking — no restart needed.
         </p>
       </div>
 
-      {/* Existing blocks */}
+      {/* Block list */}
       <div>
         <p className="adm-section-title">Active blocks ({blocks.length})</p>
         {blocks.length === 0 ? (
           <p className="adm-empty">No blocks scheduled</p>
         ) : (
-          <div className="adm-table-wrap">
-            <table className="adm-table">
-              <thead>
-                <tr>
-                  <th>Craft</th><th>Time range</th><th>Reason</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {blocks.map(b => (
-                  <tr key={b.id}>
-                    <td>
-                      {b.craft_id ? (
-                        <span>{b.crafts?.name ?? b.craft_id}</span>
-                      ) : (
-                        <span style={{ color: 'var(--clay)', fontFamily: 'var(--ff-mono)', fontSize: '.72rem', letterSpacing: '.08em' }}>
-                          ALL CRAFTS
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ fontFamily: 'var(--ff-mono)', fontSize: '.78rem', whiteSpace: 'nowrap' }}>
-                      {fmtRange(b.start_time, b.end_time)}
-                    </td>
-                    <td style={{ fontSize: '.85rem', color: 'oklch(0.85 0.015 85 / .55)' }}>
-                      {b.reason ?? '—'}
-                    </td>
-                    <td>
-                      <button
-                        className="adm-btn adm-btn-danger adm-btn-sm"
-                        disabled={deletingId === b.id && isPending}
-                        onClick={() => handleDelete(b.id)}
-                      >
-                        {deletingId === b.id && isPending ? '…' : 'Remove'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="block-list">
+            {blocks.map(b => {
+              const deleting = deletingId === b.id && isPending
+              return (
+                <div key={b.id} className="block-item">
+                  <span className={`block-scope ${b.craft_id ? 'block-scope-craft' : 'block-scope-all'}`}>
+                    {b.craft_id ? (b.crafts?.name ?? b.craft_id) : 'ALL CRAFTS'}
+                  </span>
+                  <div className="block-body">
+                    <div className="block-time">{fmtRange(b.start_time, b.end_time)}</div>
+                    {b.reason && <div className="block-reason">{b.reason}</div>}
+                  </div>
+                  <button
+                    className="adm-btn adm-btn-danger adm-btn-sm"
+                    disabled={deleting}
+                    onClick={() => handleDelete(b.id)}
+                  >
+                    {deleting ? '…' : 'Remove'}
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

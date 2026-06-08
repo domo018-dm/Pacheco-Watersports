@@ -31,10 +31,11 @@ export interface Reservation {
   notes:                    string | null
   expires_at:               string
   created_at:               string
-  stripe_session_id?:       string
+  stripe_session_id?:        string
   stripe_payment_intent_id?: string
-  payment_status?:          string
-  amount_cents?:            number | null
+  payment_status?:           string
+  amount_cents?:             number | null
+  refunded_cents?:           number
 }
 
 export interface AvailabilityBlock {

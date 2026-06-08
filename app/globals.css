@@ -753,6 +753,149 @@ a { color: inherit; text-decoration: none; }
 .adm-upload-btns { display: flex; gap: .5rem; justify-content: center; margin-top: .75rem; flex-wrap: wrap; }
 
 /* =========================================================================
+   ADMIN — RESERVATION CARDS
+   ========================================================================= */
+.res-list { display: grid; gap: .6rem; }
+
+.res-card {
+  background: var(--ink-2); border: 1px solid var(--line);
+  padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .55rem;
+  transition: border-color .15s;
+}
+.res-card:hover { border-color: oklch(0.48 0.04 240); }
+
+.res-card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+}
+.res-ref {
+  font-family: var(--ff-mono); font-size: .68rem; letter-spacing: .16em; color: var(--amber);
+}
+.res-card-main {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem;
+}
+.res-craft { font-size: .95rem; font-weight: 600; line-height: 1.25; }
+.res-customer-name {
+  font-family: var(--ff-mono); font-size: .75rem; color: oklch(0.85 0.015 85 / .55);
+  margin-top: .15rem;
+}
+.res-time-block { text-align: right; flex-shrink: 0; }
+.res-date { font-family: var(--ff-mono); font-size: .72rem; color: oklch(0.85 0.015 85 / .65); }
+.res-time { font-family: var(--ff-mono); font-size: .72rem; color: oklch(0.85 0.015 85 / .4); margin-top: .1rem; }
+
+.res-contact {
+  display: flex; flex-wrap: wrap; gap: .2rem .75rem;
+  font-family: var(--ff-mono); font-size: .72rem; color: oklch(0.85 0.015 85 / .45);
+  border-top: 1px solid oklch(0.85 0.015 85 / .07); padding-top: .45rem;
+}
+
+.res-card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .5rem; flex-wrap: wrap;
+  border-top: 1px solid oklch(0.85 0.015 85 / .07); padding-top: .55rem;
+}
+.res-amount-block { display: flex; flex-direction: column; gap: .1rem; }
+.res-amount { font-family: var(--ff-mono); font-size: .9rem; font-weight: 600; }
+.res-pay-label {
+  font-family: var(--ff-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+}
+
+@media (min-width: 1100px) {
+  .res-list { grid-template-columns: 1fr 1fr; }
+}
+
+/* =========================================================================
+   ADMIN — CRAFT CARDS
+   ========================================================================= */
+.craft-adm-list { display: flex; flex-direction: column; gap: .5rem; }
+
+.craft-adm-card {
+  display: flex; align-items: stretch;
+  background: var(--ink-2); border: 1px solid var(--line);
+  transition: border-color .15s; overflow: hidden;
+}
+.craft-adm-card:hover { border-color: oklch(0.48 0.04 240); }
+
+.craft-adm-img {
+  flex: none; width: 110px; min-height: 90px; position: relative;
+  background: var(--ink-3); overflow: hidden;
+}
+.craft-adm-img-placeholder {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-mono); font-size: .6rem; letter-spacing: .1em;
+  color: oklch(0.5 0.03 240); text-align: center; line-height: 1.4;
+}
+
+.craft-adm-body { flex: 1; padding: .85rem 1rem; display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.craft-adm-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.craft-adm-name { font-size: .95rem; font-weight: 600; }
+.craft-adm-slug { font-family: var(--ff-mono); font-size: .64rem; color: oklch(0.85 0.015 85 / .38); margin-top: .1rem; }
+.craft-adm-badges { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
+.craft-adm-rate { font-family: var(--ff-mono); font-size: .72rem; color: var(--amber); }
+
+.craft-adm-meta {
+  display: flex; flex-wrap: wrap; gap: .2rem .75rem;
+  font-family: var(--ff-mono); font-size: .7rem; color: oklch(0.85 0.015 85 / .45);
+}
+.craft-adm-sort { color: oklch(0.85 0.015 85 / .28); }
+
+/* =========================================================================
+   ADMIN — BLOCK LIST
+   ========================================================================= */
+.block-list { display: flex; flex-direction: column; gap: .4rem; }
+
+.block-item {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  background: var(--ink-2); border: 1px solid var(--line); padding: .7rem .9rem;
+}
+.block-scope {
+  flex: none; font-family: var(--ff-mono); font-size: .62rem; letter-spacing: .12em;
+  text-transform: uppercase; padding: .22rem .55rem; white-space: nowrap;
+}
+.block-scope-all   { color: var(--clay);  background: oklch(0.63 0.135 46  / .12); }
+.block-scope-craft { color: var(--water); background: oklch(0.72 0.115 228 / .12); }
+
+.block-body { flex: 1; min-width: 0; }
+.block-time { font-family: var(--ff-mono); font-size: .73rem; color: oklch(0.85 0.015 85 / .65); }
+.block-reason { font-size: .8rem; color: oklch(0.85 0.015 85 / .45); margin-top: .15rem; }
+
+/* ── Refund panel ── */
+.adm-refund-panel {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+  background: oklch(0.14 0.012 240); border-top: 2px solid oklch(0.72 0.15 15);
+  padding: 1.25rem 1.5rem 1.75rem;
+  box-shadow: 0 -12px 60px oklch(0 0 0 / .6);
+  animation: rfp-up .22s ease;
+}
+@keyframes rfp-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@media (min-width: 768px) {
+  .adm-refund-panel { left: 210px; }
+}
+.adm-refund-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem;
+}
+.adm-refund-title {
+  font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .14em;
+  text-transform: uppercase; color: oklch(0.72 0.15 15);
+}
+.adm-refund-meta {
+  font-family: var(--ff-mono); font-size: .8rem; color: oklch(0.85 0.015 85 / .55);
+  margin-bottom: .75rem;
+}
+.adm-refund-meta strong { color: oklch(0.85 0.015 85 / .9); }
+.adm-refund-amounts {
+  display: flex; flex-wrap: wrap; gap: .5rem 1.5rem;
+  font-family: var(--ff-mono); font-size: .78rem;
+  color: oklch(0.85 0.015 85 / .5); margin-bottom: 1rem;
+}
+.adm-refund-amounts strong { color: oklch(0.85 0.015 85 / .9); }
+.adm-refund-row {
+  display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;
+}
+
+/* =========================================================================
    ADMIN — MOBILE  (≤ 767 px)
    ========================================================================= */
 @media (max-width: 767px) {
