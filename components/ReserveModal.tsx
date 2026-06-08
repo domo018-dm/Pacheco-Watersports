@@ -134,8 +134,15 @@ export default function ReserveModal({ craft, onClose }: Props) {
           stripe_error:       data.message ?? 'Payment setup failed. Please try again.',
           server_error:       data.message ?? 'Something went wrong. Call us at (505) 573-9275.',
           db_error:           'Something went wrong. Call us at (505) 573-9275.',
+          invalid_input:      data.detail === 'invalid customerEmail'
+                                ? 'Please enter a valid email address.'
+                                : 'Please check your name and email, then try again.',
+          invalid_time_range: 'Invalid time selection. Please pick a slot and try again.',
+          invalid_duration:   'Invalid duration. Please pick a time slot and try again.',
+          amount_too_small:   'Booking amount too small. Please call us at (505) 573-9275.',
         }
         setFormError(messages[data.error] ?? data.message ?? 'Something went wrong. Call us at (505) 573-9275.')
+        setSubmitting(false)
         fetchSlots()
         return
       }
