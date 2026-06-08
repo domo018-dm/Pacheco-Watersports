@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createAuthServerClient } from '@/lib/supabase/ssr'
+import { createAuthServerClient } from '@/lib/supabase/ssr-server'
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
 // Every action verifies admin status independently (defense in depth).

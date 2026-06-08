@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createAuthBrowserClient } from '@/lib/supabase/ssr'
+import { createAuthBrowserClient } from '@/lib/supabase/ssr-client'
 
 const supabase = createAuthBrowserClient()
 

@@ -1,4 +1,4 @@
-import { createAuthServerClient } from '@/lib/supabase/ssr'
+import { createAuthServerClient } from '@/lib/supabase/ssr-server'
 import ReservationsClient from './ReservationsClient'
 
 export const metadata = { title: 'Reservations — Pacheco Admin' }

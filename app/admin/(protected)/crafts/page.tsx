@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createAuthServerClient } from '@/lib/supabase/ssr'
+import { createAuthServerClient } from '@/lib/supabase/ssr-server'
 import CraftsClient from './CraftsClient'
 
 export const metadata = { title: 'Crafts — Pacheco Admin' }

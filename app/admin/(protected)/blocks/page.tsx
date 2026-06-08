@@ -1,4 +1,4 @@
-import { createAuthServerClient } from '@/lib/supabase/ssr'
+import { createAuthServerClient } from '@/lib/supabase/ssr-server'
 import BlocksManager from './BlocksManager'
 
 export const metadata = { title: 'Blocks — Pacheco Admin' }

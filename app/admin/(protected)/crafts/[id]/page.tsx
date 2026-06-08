@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createAuthServerClient } from '@/lib/supabase/ssr'
+import { createAuthServerClient } from '@/lib/supabase/ssr-server'
 import CraftForm from '../CraftForm'
 
 export const metadata = { title: 'Edit Craft — Pacheco Admin' }

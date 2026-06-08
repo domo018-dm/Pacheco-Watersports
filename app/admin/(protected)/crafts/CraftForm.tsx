@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { createAuthBrowserClient } from '@/lib/supabase/ssr'
+import { createAuthBrowserClient } from '@/lib/supabase/ssr-client'
 import { createCraft, updateCraft } from '@/app/admin/actions'
 import type { Craft } from '@/types'
 
