@@ -621,6 +621,54 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* =========================================================================
+   REVIEWS
+   ========================================================================= */
+.reviews { padding: 4.5rem 0; border-top: 1px solid var(--line); }
+.reviews-h2 { margin: .5rem 0 2.5rem; }
+
+/* Horizontal scroll on mobile, grid on desktop */
+.reviews-scroll {
+  display: flex; gap: 1rem;
+  overflow-x: auto; scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: .25rem;
+  scrollbar-width: none;
+}
+.reviews-scroll::-webkit-scrollbar { display: none; }
+
+.review-card {
+  flex: 0 0 min(300px, 78vw); scroll-snap-align: start;
+  background: oklch(0.15 0.012 240); border: 1px solid var(--line);
+  border-radius: 10px; padding: 1.5rem;
+  display: flex; flex-direction: column;
+}
+.review-mark {
+  font-size: 2.2rem; line-height: 1; color: var(--water);
+  font-family: Georgia, serif; font-style: italic; margin-bottom: .6rem;
+}
+.review-body {
+  flex: 1; font-size: .92rem; line-height: 1.65;
+  color: oklch(0.85 0.015 85 / .8); margin-bottom: 1rem;
+}
+.review-stars {
+  color: var(--amber); letter-spacing: .06em; font-size: .85rem; display: block; margin-bottom: .4rem;
+}
+.review-author {
+  font-family: var(--ff-mono); font-size: .72rem; font-weight: 700; color: var(--bone);
+}
+.review-loc {
+  font-family: var(--ff-mono); font-size: .65rem; color: oklch(0.85 0.015 85 / .4); margin-top: .15rem;
+}
+
+@media (min-width: 760px) {
+  .reviews-scroll {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    overflow-x: visible; padding-bottom: 0;
+  }
+  .review-card { flex: none; }
+}
+
+/* =========================================================================
    ADMIN PANEL
    ========================================================================= */
 
@@ -909,6 +957,26 @@ a { color: inherit; text-decoration: none; }
 .adm-slot.loading  { opacity: .35; pointer-events: none; }
 .adm-edit-hint {
   font-family: var(--ff-mono); font-size: .72rem; color: oklch(0.85 0.015 85 / .35);
+}
+
+/* ── Admin reviews ── */
+.rev-adm-list { display: flex; flex-direction: column; gap: .75rem; }
+.rev-adm-card {
+  background: oklch(0.17 0.018 240); border: 1px solid var(--line);
+  border-radius: 8px; padding: 1rem 1.25rem;
+}
+.rev-adm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+.rev-adm-stars { color: var(--amber); font-size: .9rem; letter-spacing: .05em; }
+.rev-adm-body {
+  font-size: .88rem; line-height: 1.6; color: oklch(0.85 0.015 85 / .75);
+  margin-bottom: .5rem;
+}
+.rev-adm-meta {
+  font-family: var(--ff-mono); font-size: .7rem; color: oklch(0.85 0.015 85 / .45);
+  margin-bottom: .75rem;
+}
+.adm-textarea {
+  resize: vertical; min-height: 100px; font-family: inherit; line-height: 1.55;
 }
 
 /* ── New booking form ── */

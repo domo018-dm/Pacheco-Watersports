@@ -17,6 +17,39 @@ async function requireAdmin() {
   return supabase
 }
 
+// ── Reviews ───────────────────────────────────────────────────────────────────
+export interface ReviewInput {
+  author: string; location: string; body: string
+  rating: number; active: boolean; sort_order: number
+}
+
+export async function createReview(data: ReviewInput) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('reviews').insert(data)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/reviews')
+  revalidatePath('/')
+  return {}
+}
+
+export async function updateReview(id: string, data: Partial<ReviewInput>) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('reviews').update(data).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/reviews')
+  revalidatePath('/')
+  return {}
+}
+
+export async function deleteReview(id: string) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('reviews').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/reviews')
+  revalidatePath('/')
+  return {}
+}
+
 // ── Reservations ──────────────────────────────────────────────────────────────
 export async function updateReservationStatus(id: string, status: string) {
   const supabase = await requireAdmin()
