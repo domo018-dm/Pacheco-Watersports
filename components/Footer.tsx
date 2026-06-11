@@ -28,6 +28,7 @@ export default function Footer() {
           <a href="#skidsteer">Skid Steer</a>
           <a href="#local">Conchas Lake</a>
           <a href="#contact">Contact</a>
+          <a href="/press" style={{ opacity: .5 }}>Press Kit</a>
         </nav>
       </div>
     </footer>
