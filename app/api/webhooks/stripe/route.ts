@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, getWebhookSecret } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getResend } from '@/lib/resend'
 import { buildBookingConfirmationEmail } from '@/lib/emails/booking-confirmation'
@@ -72,15 +72,18 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text()
   const sig     = req.headers.get('stripe-signature') ?? ''
 
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('[webhook] STRIPE_WEBHOOK_SECRET is not set — rejecting all requests')
+  let webhookSecret: string
+  try {
+    webhookSecret = await getWebhookSecret()
+  } catch {
+    console.error('[webhook] webhook secret not configured — rejecting all requests')
     return NextResponse.json({ error: 'webhook_secret_not_configured' }, { status: 500 })
   }
 
   // ── 2. Verify Stripe signature — rejects forged/unsigned requests ──────────
   let event: Stripe.Event
   try {
-    event = getStripe().webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET)
+    event = (await getStripe()).webhooks.constructEvent(rawBody, sig, webhookSecret)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown error'
     console.error('[webhook] signature verification failed:', msg)

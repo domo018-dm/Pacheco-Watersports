@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/crafts',       label: 'Crafts'        },
   { href: '/admin/blocks',       label: 'Blocks'        },
   { href: '/admin/reviews',      label: 'Reviews'       },
+  { href: '/admin/settings',     label: 'Settings'      },
 ]
 
 export default function AdminNav({ userEmail }: { userEmail: string }) {

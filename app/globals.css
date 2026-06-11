@@ -1097,6 +1097,74 @@ a.pk-contact-val:hover { color: var(--water); }
   color: oklch(0.85 0.015 85 / .6);
 }
 
+/* ── Settings page ── */
+.adm-settings-page { max-width: 580px; }
+.adm-settings-heading {
+  font-family: var(--ff-display); font-size: 1.6rem; text-transform: uppercase;
+  letter-spacing: .06em; margin: 0 0 2rem;
+}
+.adm-settings-section-title {
+  font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--amber); margin: 0 0 1rem;
+}
+.adm-settings-card {
+  background: var(--ink-2); border: 1px solid var(--line);
+  padding: 1.5rem; border-radius: .25rem;
+}
+.adm-settings-status {
+  display: flex; align-items: center; gap: .75rem;
+  font-family: var(--ff-body); font-size: .9rem;
+}
+.adm-settings-dot {
+  flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%;
+}
+.adm-settings-dot--on  { background: var(--go); box-shadow: 0 0 6px var(--go); }
+.adm-settings-dot--off { background: oklch(0.85 0.015 85 / .3); }
+.adm-settings-mode {
+  display: inline-block; font-family: var(--ff-mono); font-size: .65rem;
+  letter-spacing: .1em; padding: .15rem .45rem; border-radius: .2rem;
+  margin-left: .6rem; vertical-align: middle;
+}
+.adm-settings-mode--live { background: oklch(0.72 0.14 155 / .2); color: var(--go); }
+.adm-settings-mode--test { background: oklch(0.83 0.165 82 / .15); color: var(--amber); }
+.adm-settings-divider { border: none; border-top: 1px solid var(--line); margin: 1.25rem 0; }
+.adm-settings-subheading {
+  font-family: var(--ff-mono); font-size: .78rem; letter-spacing: .1em;
+  text-transform: uppercase; color: oklch(0.85 0.015 85 / .7);
+  margin: 0 0 .6rem;
+}
+.adm-settings-hint {
+  font-family: var(--ff-body); font-size: .85rem; color: oklch(0.85 0.015 85 / .55);
+  margin: 0 0 1.25rem; line-height: 1.55;
+}
+.adm-settings-hint a { color: var(--water); }
+.adm-settings-form { display: flex; flex-direction: column; gap: .85rem; }
+.adm-settings-label {
+  display: flex; flex-direction: column; gap: .35rem;
+  font-family: var(--ff-mono); font-size: .7rem; letter-spacing: .1em;
+  text-transform: uppercase; color: oklch(0.85 0.015 85 / .55);
+}
+.adm-settings-input {
+  background: var(--ink); border: 1px solid var(--line);
+  color: var(--bone); font-family: var(--ff-mono); font-size: .85rem;
+  padding: .6rem .8rem; border-radius: .2rem; width: 100%;
+}
+.adm-settings-input:focus { outline: 2px solid var(--water); outline-offset: 0; border-color: transparent; }
+.adm-settings-error   { font-size: .82rem; color: oklch(0.72 0.15 15); margin: 0; }
+.adm-settings-success { font-size: .82rem; color: var(--go); margin: 0; }
+.adm-settings-btn {
+  align-self: flex-start; background: var(--water); color: var(--ink);
+  border: none; font-family: var(--ff-mono); font-size: .8rem; letter-spacing: .08em;
+  text-transform: uppercase; padding: .65rem 1.4rem; border-radius: .25rem;
+  cursor: pointer; font-weight: 700;
+}
+.adm-settings-btn:hover:not(:disabled) { background: var(--water-deep); color: var(--bone); }
+.adm-settings-btn:disabled { opacity: .45; cursor: default; }
+.adm-settings-fine {
+  font-family: var(--ff-body); font-size: .78rem; color: oklch(0.85 0.015 85 / .38);
+  margin: 1.25rem 0 0; line-height: 1.55;
+}
+
 /* ── Refund panel ── */
 .adm-refund-panel {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;

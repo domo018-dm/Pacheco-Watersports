@@ -25,7 +25,7 @@ export default async function SuccessPage({ searchParams }: Props) {
 
   let session
   try {
-    session = await getStripe().checkout.sessions.retrieve(session_id)
+    session = await (await getStripe()).checkout.sessions.retrieve(session_id)
   } catch {
     redirect('/')
   }

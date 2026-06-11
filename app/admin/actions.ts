@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAuthServerClient } from '@/lib/supabase/ssr-server'
-import { getStripe } from '@/lib/stripe'
+import Stripe from 'stripe'
+import { getStripe, getWebhookSecret as _getWebhookSecret } from '@/lib/stripe'
 import { getResend } from '@/lib/resend'
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
@@ -180,7 +181,7 @@ export async function generatePaymentLink(reservationId: string) {
 
   let session
   try {
-    session = await getStripe().checkout.sessions.create({
+    session = await (await getStripe()).checkout.sessions.create({
       mode:                 'payment',
       payment_method_types: ['card'],
       ...(customerEmail ? { customer_email: customerEmail } : {}),
@@ -335,7 +336,7 @@ export async function refundReservation(reservationId: string, amountCents: numb
   let piId = reservation.stripe_payment_intent_id as string | null
   if (!piId && reservation.stripe_session_id) {
     try {
-      const session = await getStripe().checkout.sessions.retrieve(reservation.stripe_session_id)
+      const session = await (await getStripe()).checkout.sessions.retrieve(reservation.stripe_session_id)
       piId = typeof session.payment_intent === 'string'
         ? session.payment_intent
         : (session.payment_intent as { id: string } | null)?.id ?? null
@@ -360,7 +361,7 @@ export async function refundReservation(reservationId: string, amountCents: numb
   // Issue refund via Stripe
   let refundId: string
   try {
-    const refund = await getStripe().refunds.create({
+    const refund = await (await getStripe()).refunds.create({
       payment_intent: piId,
       amount:         amountCents,
       reason:         'requested_by_customer',
@@ -389,4 +390,95 @@ export async function refundReservation(reservationId: string, amountCents: numb
 
   revalidatePath('/admin/reservations')
   return { refundId }
+}
+
+// ── Stripe connect ────────────────────────────────────────────────────────────
+export async function connectStripe(publishableKey: string, secretKey: string) {
+  await requireAdmin()
+
+  // Validate keys format before hitting Stripe
+  if (!publishableKey.startsWith('pk_')) {
+    return { error: 'Publishable key must start with pk_live_ or pk_test_' }
+  }
+  if (!secretKey.startsWith('sk_')) {
+    return { error: 'Secret key must start with sk_live_ or sk_test_' }
+  }
+  if (publishableKey.startsWith('pk_live_') !== secretKey.startsWith('sk_live_')) {
+    return { error: 'Publishable and secret keys must be from the same mode (both live or both test)' }
+  }
+
+  // Validate keys by calling Stripe — list a single product to confirm the key works
+  let stripe: Stripe
+  let accountName: string
+  try {
+    stripe = new Stripe(secretKey, { apiVersion: '2026-05-27.dahlia' })
+    // Use balance.retrieve() — works on any Stripe account with no required args
+    const balance = await stripe.balance.retrieve()
+    // Derive a label from key prefix since balance doesn't carry account name
+    const mode = secretKey.startsWith('sk_live_') ? 'Live' : 'Test'
+    accountName = `Stripe (${mode} mode)`
+    void balance // used only for validation
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return { error: `Stripe rejected the key: ${msg}` }
+  }
+
+  // Determine the webhook endpoint URL for this deployment
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pachecowatersports.com'
+  const webhookUrl = `${siteUrl}/api/webhooks/stripe`
+  const webhookEvents: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
+    'checkout.session.completed',
+    'checkout.session.expired',
+    'checkout.session.async_payment_succeeded',
+    'checkout.session.async_payment_failed',
+    'charge.refunded',
+  ]
+
+  // Delete any existing webhook for this URL to avoid duplicates
+  try {
+    const existing = await stripe.webhookEndpoints.list({ limit: 100 })
+    for (const wh of existing.data) {
+      if (wh.url === webhookUrl) {
+        await stripe.webhookEndpoints.del(wh.id)
+      }
+    }
+  } catch {
+    // Non-fatal — proceed to create
+  }
+
+  // Create the webhook and capture the signing secret
+  let webhookSecret: string
+  try {
+    const webhook = await stripe.webhookEndpoints.create({
+      url:            webhookUrl,
+      enabled_events: webhookEvents,
+      description:    'Pacheco Watersports booking webhooks (auto-configured)',
+    })
+    webhookSecret = webhook.secret ?? ''
+    if (!webhookSecret) {
+      return { error: 'Stripe webhook created but did not return a signing secret — please try again' }
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return { error: `Failed to create webhook: ${msg}` }
+  }
+
+  // Save all keys + account name to the settings table
+  const { createServiceClient } = await import('@/lib/supabase/server')
+  const db = createServiceClient()
+  const upserts = [
+    { key: 'stripe_publishable_key', value: publishableKey },
+    { key: 'stripe_secret_key',      value: secretKey },
+    { key: 'stripe_webhook_secret',  value: webhookSecret },
+    { key: 'stripe_account_name',    value: accountName },
+  ]
+  for (const row of upserts) {
+    const { error } = await db
+      .from('settings')
+      .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    if (error) return { error: `Failed to save settings: ${error.message}` }
+  }
+
+  revalidatePath('/admin/settings')
+  return { accountName }
 }

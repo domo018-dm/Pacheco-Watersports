@@ -127,7 +127,7 @@ async function handleCheckout(req: NextRequest) {
     })()
 
   // ── 4. Create Stripe Checkout Session ────────────────────────────────────────
-  const stripe  = getStripe()
+  const stripe  = await getStripe()
   const typeStr = craft.type === 'ski' ? 'Jet Ski' : craft.class_label === 'CRUISE' ? 'Pontoon' : 'Boat'
   const timeStr = `${new Date(startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${durationHours}hr`
 
