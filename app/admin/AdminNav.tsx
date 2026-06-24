@@ -9,7 +9,7 @@ const supabase = createAuthBrowserClient()
 
 const NAV = [
   { href: '/admin/reservations', label: 'Reservations' },
-  { href: '/admin/crafts',       label: 'Crafts'        },
+  { href: '/admin/crafts',       label: 'Inventory'     },
   { href: '/admin/blocks',       label: 'Blocks'        },
   { href: '/admin/reviews',      label: 'Reviews'       },
   { href: '/admin/settings',     label: 'Settings'      },

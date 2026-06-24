@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createAuthServerClient } from '@/lib/supabase/ssr-server'
 import CraftsClient from './CraftsClient'
 
-export const metadata = { title: 'Crafts — Pacheco Admin' }
+export const metadata = { title: 'Inventory — Pacheco Admin' }
 
 export default async function CraftsPage() {
   const supabase = await createAuthServerClient()
@@ -14,8 +14,8 @@ export default async function CraftsPage() {
   return (
     <div>
       <div className="adm-topbar">
-        <h1 className="adm-title">Crafts</h1>
-        <Link href="/admin/crafts/new" className="adm-btn adm-btn-sm">+ Add craft</Link>
+        <h1 className="adm-title">Inventory</h1>
+        <Link href="/admin/crafts/new" className="adm-btn adm-btn-sm">+ Add item</Link>
       </div>
       <div className="adm-content">
         <CraftsClient crafts={crafts ?? []} />

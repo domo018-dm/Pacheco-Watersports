@@ -21,7 +21,7 @@ export default function CraftsClient({ crafts }: { crafts: Craft[] }) {
     startTransition(async () => { await deleteCraft(id); setActionId(null) })
   }
 
-  if (crafts.length === 0) return <p className="adm-empty">No crafts yet — add one above</p>
+  if (crafts.length === 0) return <p className="adm-empty">No items yet — add one above</p>
 
   return (
     <div className="craft-adm-list">

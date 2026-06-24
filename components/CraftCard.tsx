@@ -8,6 +8,7 @@ interface Props {
 
 function typeLabel(craft: Craft): string {
   if (craft.type === 'ski') return 'Jet Ski'
+  if (craft.type === 'other') return 'Other'
   if (craft.class_label === 'CRUISE') return 'Pontoon'
   return 'Ski / Wake'
 }
@@ -50,7 +51,7 @@ export default function CraftCard({ craft, onReserve }: Props) {
           <span>
             {craft.type === 'boat' ? 'Up to ' : ''}
             <b>{craft.seats}</b>
-            {craft.type === 'ski' ? ' riders' : ''}
+            {craft.type === 'ski' ? ' riders' : craft.type === 'boat' ? ` passenger${craft.seats !== 1 ? 's' : ''}` : ''}
           </span>
           <span>{craft.description}</span>
           <span><b>{craft.class_label}</b></span>

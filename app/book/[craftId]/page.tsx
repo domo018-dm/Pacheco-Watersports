@@ -54,7 +54,7 @@ export default async function BookPage({ params }: Props) {
                 <span className="eyebrow">Reserve</span>
                 <h1 className="booking-title">{craft.name}</h1>
                 <p className="booking-subtitle">
-                  {craft.seats} {craft.type === 'ski' ? 'riders' : `passenger${craft.seats > 1 ? 's' : ''}`}
+                  {craft.seats} {craft.type === 'ski' ? 'riders' : craft.type === 'other' ? `seat${craft.seats > 1 ? 's' : ''}` : `passenger${craft.seats > 1 ? 's' : ''}`}
                   &nbsp;·&nbsp;{craft.class_label}
                   &nbsp;·&nbsp;{hourlyRate}
                 </p>

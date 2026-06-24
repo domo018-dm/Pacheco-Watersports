@@ -19,7 +19,7 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
 
   const [id,          setId]          = useState(craft?.id ?? '')
   const [name,        setName]        = useState(craft?.name ?? '')
-  const [type,        setType]        = useState<'ski' | 'boat'>(craft?.type ?? 'ski')
+  const [type,        setType]        = useState<'ski' | 'boat' | 'other'>(craft?.type ?? 'ski')
   const [classLabel,  setClassLabel]  = useState(craft?.class_label ?? '')
   const [description, setDescription] = useState(craft?.description ?? '')
   const [seats,       setSeats]       = useState(craft?.seats ?? 2)
@@ -42,7 +42,7 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
     setName(val)
     if (!isEdit) setId(slugify(val, type))
   }
-  function onTypeChange(val: 'ski' | 'boat') {
+  function onTypeChange(val: 'ski' | 'boat' | 'other') {
     setType(val)
     if (!isEdit) setId(slugify(name, val))
   }
@@ -105,7 +105,7 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
   return (
     <div>
       <div className="adm-topbar">
-        <h1 className="adm-title">{isEdit ? `Edit — ${craft!.name}` : 'New Craft'}</h1>
+        <h1 className="adm-title">{isEdit ? `Edit — ${craft!.name}` : 'New Item'}</h1>
       </div>
       <div className="adm-content" style={{ maxWidth: 720 }}>
         <form onSubmit={handleSubmit} className="adm-form">
@@ -113,7 +113,7 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
 
           <div className="adm-form-grid">
             <div className="adm-field">
-              <label className="adm-label">Craft ID (slug)</label>
+              <label className="adm-label">ID (slug)</label>
               <input className="adm-input" value={id} onChange={e => setId(e.target.value)}
                 required readOnly={isEdit} style={{ opacity: isEdit ? .5 : 1 }} />
             </div>
@@ -124,9 +124,10 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
             <div className="adm-field">
               <label className="adm-label">Type</label>
               <select className="adm-select" value={type}
-                onChange={e => onTypeChange(e.target.value as 'ski' | 'boat')}>
+                onChange={e => onTypeChange(e.target.value as 'ski' | 'boat' | 'other')}>
                 <option value="ski">Ski (Jet Ski)</option>
                 <option value="boat">Boat</option>
+                <option value="other">Other (Vehicle / Equipment)</option>
               </select>
             </div>
             <div className="adm-field">
@@ -206,7 +207,7 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
 
           <div className="adm-actions-row" style={{ marginTop: '.5rem' }}>
             <button type="submit" className="adm-btn" disabled={saving || uploading}>
-              {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create craft'}
+              {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create item'}
             </button>
             <button type="button" className="adm-btn adm-btn-ghost"
               onClick={() => router.push('/admin/crafts')}>

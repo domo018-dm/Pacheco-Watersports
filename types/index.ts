@@ -1,4 +1,4 @@
-export type CraftType = 'ski' | 'boat'
+export type CraftType = 'ski' | 'boat' | 'other'
 export type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed'
 export type BookingStatus = ReservationStatus  // legacy alias
 

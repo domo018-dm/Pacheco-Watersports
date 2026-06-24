@@ -12,9 +12,10 @@ interface Props {
 }
 
 const FILTER_LABELS: Record<Filter, string> = {
-  all:  'All Craft',
-  ski:  'Jet Skis',
-  boat: 'Boats',
+  all:   'All Craft',
+  ski:   'Jet Skis',
+  boat:  'Boats',
+  other: 'Other',
 }
 
 export default function FleetGrid({ crafts }: Props) {
@@ -23,7 +24,7 @@ export default function FleetGrid({ crafts }: Props) {
 
   const hasType = (t: CraftType) => crafts.some(c => c.type === t)
   const visible  = filter === 'all' ? crafts : crafts.filter(c => c.type === filter)
-  const filters: Filter[] = ['all', ...(hasType('ski') ? ['ski' as const] : []), ...(hasType('boat') ? ['boat' as const] : [])]
+  const filters: Filter[] = ['all', ...(hasType('ski') ? ['ski' as const] : []), ...(hasType('boat') ? ['boat' as const] : []), ...(hasType('other') ? ['other' as const] : [])]
 
   return (
     <>
