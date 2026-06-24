@@ -12,7 +12,7 @@ interface Props {
 }
 
 const FILTER_LABELS: Record<Filter, string> = {
-  all:   'All Craft',
+  all:   'All Items',
   ski:   'Jet Skis',
   boat:  'Boats',
   other: 'Other',
