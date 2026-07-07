@@ -1,4 +1,26 @@
-export default function JetSkiSection() {
+import Image from 'next/image'
+import { createServerClient } from '@/lib/supabase/server'
+
+// Pull the first active jet-ski photo from inventory so this section
+// mirrors a real listing instead of showing an empty placeholder.
+async function getJetSkiImage(): Promise<{ url: string; name: string } | null> {
+  const { data } = await createServerClient()
+    .from('crafts')
+    .select('image_url, name')
+    .eq('type', 'ski')
+    .eq('active', true)
+    .not('image_url', 'is', null)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  return data?.image_url ? { url: data.image_url, name: data.name } : null
+}
+
+export default async function JetSkiSection() {
+  const photo = await getJetSkiImage()
+
   return (
     <section className="svc water-svc" id="jetski">
       <div className="shell">
@@ -59,7 +81,17 @@ export default function JetSkiSection() {
 
           <div className="svc-media">
             <div className="svc-photo">
-              <span style={{ opacity: 0.4 }}>Jet ski photo</span>
+              {photo ? (
+                <Image
+                  src={photo.url}
+                  alt={`${photo.name} jet ski at Conchas Lake`}
+                  fill
+                  sizes="(max-width: 1000px) 100vw, 50vw"
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                <span style={{ opacity: 0.4 }}>Jet ski photo</span>
+              )}
             </div>
           </div>
         </div>
