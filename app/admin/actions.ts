@@ -67,6 +67,7 @@ export interface CraftInput {
   description: string; seats: number; hourly_rate: number | null
   rate: string; total_units: number; sort_order: number
   active: boolean; image_url: string | null
+  for_sale: boolean; sale_price: number | null
 }
 
 export async function createCraft(data: CraftInput) {

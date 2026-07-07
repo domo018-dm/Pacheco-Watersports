@@ -49,6 +49,11 @@ export default function CraftsClient({ crafts }: { crafts: Craft[] }) {
                   <span className={`badge ${c.active ? 'badge-confirmed' : 'badge-cancelled'}`}>
                     {c.active ? 'Active' : 'Hidden'}
                   </span>
+                  {c.for_sale && (
+                    <span className="badge badge-forsale">
+                      For Sale{c.sale_price != null ? ` · $${c.sale_price.toLocaleString('en-US')}` : ''}
+                    </span>
+                  )}
                   {c.hourly_rate && (
                     <span className="craft-adm-rate">${c.hourly_rate}/hr</span>
                   )}

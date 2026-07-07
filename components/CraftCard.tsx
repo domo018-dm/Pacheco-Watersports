@@ -26,6 +26,7 @@ export default function CraftCard({ craft, onReserve }: Props) {
     <article className="craft">
       <div className="craft-media">
         <span className={`craft-type ${craft.type}`}>{typeLabel(craft)}</span>
+        {craft.for_sale && <span className="craft-forsale">For Sale</span>}
         {craft.image_url ? (
           <Image
             src={craft.image_url}
@@ -57,6 +58,15 @@ export default function CraftCard({ craft, onReserve }: Props) {
           <span><b>{craft.class_label}</b></span>
         </div>
 
+        {craft.for_sale && (
+          <p className="craft-sale">
+            For sale ·{' '}
+            {craft.sale_price != null
+              ? <b>${craft.sale_price.toLocaleString('en-US')}</b>
+              : 'price on request'}
+          </p>
+        )}
+
         <div className="avail few">
           <span className="dot" />
           Call to check availability
@@ -72,6 +82,15 @@ export default function CraftCard({ craft, onReserve }: Props) {
             Reserve
           </button>
         </div>
+
+        {craft.for_sale && (
+          <a
+            className="btn-buy"
+            href={`sms:+15055739275?&body=${encodeURIComponent(`Hi, I'm interested in buying the ${craft.name}. Is it still available and what's the asking price?`)}`}
+          >
+            Ask about buying
+          </a>
+        )}
       </div>
     </article>
   )

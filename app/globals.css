@@ -460,6 +460,13 @@ a { color: inherit; text-decoration: none; }
 .craft-type.boat { color: var(--water); }
 .craft-type.ski { color: var(--amber); }
 
+.craft-forsale {
+  position: absolute; top: .7rem; right: .7rem; z-index: 2;
+  font-family: var(--ff-mono); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
+  padding: .32rem .55rem; background: var(--amber); color: var(--ink);
+  border: 1px solid var(--amber);
+}
+
 .craft-body { padding: 1.2rem 1.2rem 1.3rem; display: flex; flex-direction: column; gap: .85rem; flex: 1; }
 .craft-name { font-family: var(--ff-display); text-transform: uppercase; font-size: 1.7rem; line-height: 1.0; }
 .craft-specs { display: flex; flex-wrap: wrap; gap: .4rem .9rem; font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .04em; color: oklch(0.88 0.012 85 / .6); }
@@ -484,6 +491,16 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-reserve:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px var(--water); }
 .btn-reserve:disabled { background: transparent; color: oklch(0.7 0.06 46); border-color: var(--line); cursor: not-allowed; transform: none; box-shadow: none; }
+
+.craft-sale { font-family: var(--ff-mono); font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--amber); }
+.craft-sale b { color: var(--bone); font-weight: 700; }
+.btn-buy {
+  font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700;
+  padding: .65rem 1rem; margin-top: .1rem; text-align: center; text-decoration: none;
+  display: block; background: transparent; color: var(--amber); border: 1px solid var(--amber);
+  cursor: pointer; transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s;
+}
+.btn-buy:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px var(--amber); }
 
 /* ---- reservation modal ---- */
 .modal {
@@ -823,6 +840,7 @@ a.pk-contact-val:hover { color: var(--water); }
 .badge-confirmed  { color: var(--go);    background: oklch(0.72 0.14 155 / .12); }
 .badge-cancelled  { color: oklch(0.85 0.015 85 / .4); background: oklch(0.85 0.015 85 / .07); }
 .badge-completed  { color: var(--water); background: oklch(0.72 0.115 228 / .12); }
+.badge-forsale    { color: var(--amber); background: oklch(0.83 0.165 82 / .12); font-weight: 700; }
 
 /* ── Buttons ── */
 .adm-btn {

@@ -28,6 +28,8 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
   const [totalUnits,  setTotalUnits]  = useState(craft?.total_units ?? 1)
   const [sortOrder,   setSortOrder]   = useState(craft?.sort_order ?? 0)
   const [active,      setActive]      = useState(craft?.active ?? true)
+  const [forSale,     setForSale]     = useState(craft?.for_sale ?? false)
+  const [salePrice,   setSalePrice]   = useState<number | ''>(craft?.sale_price ?? '')
   const [imageUrl,    setImageUrl]    = useState<string | null>(craft?.image_url ?? null)
 
   const [imageFile,    setImageFile]    = useState<File | null>(null)
@@ -86,6 +88,8 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
       seats: Number(seats), hourly_rate: hourlyRate === '' ? null : Number(hourlyRate),
       rate: rateText, total_units: Number(totalUnits),
       sort_order: Number(sortOrder), active, image_url: finalImageUrl,
+      for_sale: forSale,
+      sale_price: forSale && salePrice !== '' ? Number(salePrice) : null,
     }
 
     const result = isEdit
@@ -171,6 +175,19 @@ export default function CraftForm({ craft }: { craft?: Craft }) {
             <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} />
             <span className="adm-label" style={{ margin: 0 }}>Active (visible on public site)</span>
           </label>
+
+          <label className="adm-check">
+            <input type="checkbox" checked={forSale} onChange={e => setForSale(e.target.checked)} />
+            <span className="adm-label" style={{ margin: 0 }}>For sale (shows a &ldquo;For Sale&rdquo; tag on the listing)</span>
+          </label>
+
+          {forSale && (
+            <div className="adm-field">
+              <label className="adm-label">Asking price ($) — optional</label>
+              <input type="number" className="adm-input" min={0} step="1" placeholder="e.g. 9500 (leave blank for “price on request”)"
+                value={salePrice} onChange={e => setSalePrice(e.target.value === '' ? '' : Number(e.target.value))} />
+            </div>
+          )}
 
           {/* Image upload */}
           <div className="adm-field">

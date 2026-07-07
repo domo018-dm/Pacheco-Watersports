@@ -16,6 +16,8 @@ export interface Craft {
   total_units: number
   sort_order: number
   active: boolean
+  for_sale: boolean
+  sale_price: number | null   // whole dollars; null = price on request
   created_at: string
 }
 
