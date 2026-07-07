@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useTransition, useState } from 'react'
-import { deleteCraft, toggleCraftActive } from '@/app/admin/actions'
+import { deleteCraft, toggleCraftActive, moveCraft } from '@/app/admin/actions'
 import type { Craft } from '@/types'
 
 export default function CraftsClient({ crafts }: { crafts: Craft[] }) {
@@ -21,11 +21,16 @@ export default function CraftsClient({ crafts }: { crafts: Craft[] }) {
     startTransition(async () => { await deleteCraft(id); setActionId(null) })
   }
 
+  function handleMove(id: string, direction: 'up' | 'down') {
+    setActionId(id)
+    startTransition(async () => { await moveCraft(id, direction); setActionId(null) })
+  }
+
   if (crafts.length === 0) return <p className="adm-empty">No items yet — add one above</p>
 
   return (
     <div className="craft-adm-list">
-      {crafts.map(c => {
+      {crafts.map((c, i) => {
         const busy = actionId === c.id && isPending
         return (
           <div key={c.id} className="craft-adm-card" style={{ opacity: c.active ? 1 : 0.5 }}>
@@ -68,6 +73,14 @@ export default function CraftsClient({ crafts }: { crafts: Craft[] }) {
               </div>
 
               <div className="adm-actions-row">
+                <button className="adm-btn adm-btn-ghost adm-btn-sm" disabled={busy || i === 0}
+                  onClick={() => handleMove(c.id, 'up')} aria-label="Move up" title="Move up">
+                  ↑
+                </button>
+                <button className="adm-btn adm-btn-ghost adm-btn-sm" disabled={busy || i === crafts.length - 1}
+                  onClick={() => handleMove(c.id, 'down')} aria-label="Move down" title="Move down">
+                  ↓
+                </button>
                 <Link href={`/admin/crafts/${c.id}`} className="adm-btn adm-btn-ghost adm-btn-sm">
                   Edit
                 </Link>

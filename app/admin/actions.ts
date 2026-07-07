@@ -145,6 +145,41 @@ export async function toggleCraftActive(id: string, active: boolean) {
   return {}
 }
 
+// Move a craft one position up/down in the public listing order. Renormalizes
+// sort_order to sequential values (0,1,2,…) so it works even when items share
+// the default sort_order of 0. Only rows whose position changed are written.
+export async function moveCraft(id: string, direction: 'up' | 'down') {
+  const supabase = await requireAdmin()
+  const { data: crafts, error } = await supabase
+    .from('crafts')
+    .select('id, sort_order')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) return { error: error.message }
+  if (!crafts) return { error: 'Could not load inventory' }
+
+  const idx = crafts.findIndex(c => c.id === id)
+  if (idx === -1) return { error: 'Item not found' }
+
+  const target = direction === 'up' ? idx - 1 : idx + 1
+  if (target < 0 || target >= crafts.length) return {}   // already at the edge — no-op
+
+  const reordered = [...crafts]
+  const [moved] = reordered.splice(idx, 1)
+  reordered.splice(target, 0, moved)
+
+  // Persist only the rows whose sort_order actually changed.
+  for (let i = 0; i < reordered.length; i++) {
+    if (reordered[i].sort_order === i) continue
+    const { error: upErr } = await supabase.from('crafts').update({ sort_order: i }).eq('id', reordered[i].id)
+    if (upErr) return { error: upErr.message }
+  }
+
+  revalidatePath('/admin/crafts')
+  revalidatePath('/')
+  return {}
+}
+
 // ── Availability blocks ───────────────────────────────────────────────────────
 export async function createBlock(data: {
   craft_id: string | null; reason: string | null
