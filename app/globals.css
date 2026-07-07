@@ -768,6 +768,36 @@ a.pk-contact-val:hover { color: var(--water); }
   .review-card { flex: none; }
 }
 
+/* Customer "Write a review" */
+.review-empty {
+  font-family: var(--ff-mono); font-size: .8rem; letter-spacing: .04em;
+  color: oklch(0.85 0.015 85 / .5); margin: 1rem 0 1.5rem;
+}
+.reviews-cta { margin-top: 1.8rem; }
+
+.review-star-input { display: flex; gap: .3rem; }
+.review-star-btn {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 1.9rem; line-height: 1; color: var(--line);
+  transition: color .12s var(--ease), transform .12s var(--ease);
+}
+.review-star-btn:hover { transform: scale(1.12); }
+.review-star-btn.on { color: var(--amber); }
+
+.review-textarea {
+  width: 100%; font-family: var(--ff-body); font-size: 1rem;
+  padding: .8rem .9rem; background: var(--ink-2);
+  border: 1px solid var(--line); color: var(--bone);
+  resize: vertical; min-height: 6.5rem;
+}
+.review-textarea:focus { outline: none; border-color: var(--water); }
+
+.review-error {
+  font-family: var(--ff-mono); font-size: .78rem; color: var(--clay);
+  background: oklch(0.63 0.135 46 / .1); border: 1px solid oklch(0.63 0.135 46 / .25);
+  padding: .7rem .9rem; margin-bottom: 1rem;
+}
+
 /* =========================================================================
    ADMIN PANEL
    ========================================================================= */

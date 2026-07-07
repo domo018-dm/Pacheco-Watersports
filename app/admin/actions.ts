@@ -51,6 +51,44 @@ export async function deleteReview(id: string) {
   return {}
 }
 
+// Public review submission — NOT admin-gated. Reviews come in hidden
+// (active: false) and only appear after the owner approves them in the admin.
+// Anon has no INSERT grant on reviews, so this writes via the service client.
+export async function submitReview(data: {
+  author: string; location?: string; body: string; rating: number; hp?: string
+}) {
+  // Honeypot: real users never fill this hidden field. Silently accept + drop.
+  if (data.hp && data.hp.trim() !== '') return { ok: true as const }
+
+  const author   = (data.author ?? '').trim()
+  const location = (data.location ?? '').trim()
+  const body     = (data.body ?? '').trim()
+  const rating   = Math.round(Number(data.rating))
+
+  if (author.length < 2 || author.length > 60)   return { error: 'Please enter your name.' }
+  if (body.length   < 4 || body.length   > 1000) return { error: 'Please write a few words about your experience.' }
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) return { error: 'Please choose a star rating (1–5).' }
+  if (location.length > 80) return { error: 'Location is too long.' }
+
+  const { createServiceClient } = await import('@/lib/supabase/server')
+  const db = createServiceClient()
+  const { error } = await db.from('reviews').insert({
+    author,
+    location: location || null,
+    body,
+    rating,
+    active:     false,   // pending owner approval
+    sort_order: 0,
+  })
+  if (error) {
+    console.error('[submitReview] insert failed:', error.message)
+    return { error: 'Could not submit your review. Please try again.' }
+  }
+
+  revalidatePath('/admin/reviews')
+  return { ok: true as const }
+}
+
 // ── Reservations ──────────────────────────────────────────────────────────────
 export async function updateReservationStatus(id: string, status: string) {
   const supabase = await requireAdmin()
