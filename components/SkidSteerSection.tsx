@@ -1,3 +1,7 @@
+import { createServerClient } from '@/lib/supabase/server'
+import BeforeAfter from './BeforeAfter'
+import type { LandJob } from '@/types'
+
 const services = [
   { num: '01', label: 'Road\nRepair' },
   { num: '02', label: 'Land\nLeveling' },
@@ -5,7 +9,21 @@ const services = [
   { num: '04', label: '& More' },
 ]
 
-export default function SkidSteerSection() {
+async function getLandJobs(): Promise<LandJob[]> {
+  const { data } = await createServerClient()
+    .from('land_jobs')
+    .select('*')
+    .eq('active', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  return (data ?? []) as LandJob[]
+}
+
+export default async function SkidSteerSection() {
+  const jobs     = await getLandJobs()
+  const featured = jobs[0]
+  const rest     = jobs.slice(1)
+
   return (
     <section className="svc earth" id="skidsteer">
       <div className="shell">
@@ -46,11 +64,24 @@ export default function SkidSteerSection() {
           </div>
 
           <div className="svc-media">
-            <div className="svc-photo">
-              <span style={{ opacity: 0.4 }}>Skid steer photo</span>
-            </div>
+            {featured ? (
+              <BeforeAfter before={featured.before_url} after={featured.after_url} title={featured.title} />
+            ) : (
+              <div className="svc-photo">
+                <span style={{ opacity: 0.4 }}>Skid steer photo</span>
+              </div>
+            )}
           </div>
         </div>
+
+        {rest.length > 0 && (
+          <div className="ba-gallery">
+            {rest.map(j => (
+              <BeforeAfter key={j.id} before={j.before_url} after={j.after_url} title={j.title}
+                sizes="(max-width: 760px) 100vw, 33vw" />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

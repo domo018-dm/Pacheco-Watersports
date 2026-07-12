@@ -319,6 +319,54 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .1em;
 }
 
+/* ---- before/after slider ---- */
+.ba-wrap { margin: 1.6rem 0; display: flex; flex-direction: column; gap: .6rem; }
+.ba {
+  position: relative; overflow: hidden;
+  width: 100%; aspect-ratio: 4/3;
+  border-radius: 4px; border: 1px solid var(--line);
+  background: var(--ink-2); touch-action: pan-y;
+}
+.ba-img { user-select: none; pointer-events: none; }
+.ba-tag {
+  position: absolute; top: .7rem; z-index: 3;
+  font-family: var(--ff-mono); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+  padding: .28rem .5rem; background: oklch(0.10 0.02 240 / .78); color: var(--bone);
+  backdrop-filter: blur(4px); pointer-events: none;
+}
+.ba-tag--before { left: .7rem; }
+.ba-tag--after  { right: .7rem; }
+.ba-divider {
+  position: absolute; top: 0; bottom: 0; z-index: 3;
+  width: 2px; background: var(--bone); transform: translateX(-1px); pointer-events: none;
+}
+.ba-handle {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  background: var(--bone); color: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-mono); font-size: .9rem; font-weight: 700;
+  box-shadow: 0 2px 10px oklch(0.10 0.02 240 / .5);
+}
+.ba-range {
+  position: absolute; inset: 0; z-index: 4;
+  width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize;
+  -webkit-appearance: none; appearance: none; background: transparent;
+}
+.ba-range::-webkit-slider-thumb { -webkit-appearance: none; width: 44px; height: 100%; cursor: ew-resize; }
+.ba-range::-moz-range-thumb { width: 44px; height: 100%; border: 0; background: transparent; cursor: ew-resize; }
+.ba-title {
+  font-family: var(--ff-mono); font-size: .72rem; letter-spacing: .04em;
+  color: oklch(0.88 0.012 85 / .6); text-transform: uppercase;
+}
+.ba-gallery { display: grid; gap: 1.1rem; margin-top: 2rem; }
+@media (min-width: 760px) {
+  .ba-gallery { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1000px) {
+  .ba-gallery { grid-template-columns: repeat(3, 1fr); }
+}
+
 .specs { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 1.4rem; }
 .spec { background: var(--ink); padding: 1.1rem 1.2rem; display: flex; align-items: baseline; gap: .9rem; }
 .spec .n { font-family: var(--ff-mono); font-size: .72rem; color: var(--amber); letter-spacing: .1em; flex: none; }

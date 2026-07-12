@@ -21,6 +21,16 @@ export interface Craft {
   created_at: string
 }
 
+export interface LandJob {
+  id: string
+  title: string | null
+  before_url: string
+  after_url: string
+  active: boolean
+  sort_order: number
+  created_at: string
+}
+
 export interface Reservation {
   id:                       string
   craft_id:                 string

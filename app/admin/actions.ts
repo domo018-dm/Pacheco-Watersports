@@ -51,6 +51,69 @@ export async function deleteReview(id: string) {
   return {}
 }
 
+// ── Land-clearing before/after jobs ─────────────────────────────────────────
+export async function createLandJob(data: { title: string; before_url: string; after_url: string }) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('land_jobs').insert({
+    title:      data.title.trim() || null,
+    before_url: data.before_url,
+    after_url:  data.after_url,
+  })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/land-jobs')
+  revalidatePath('/')
+  return {}
+}
+
+export async function deleteLandJob(id: string) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('land_jobs').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/land-jobs')
+  revalidatePath('/')
+  return {}
+}
+
+export async function toggleLandJobActive(id: string, active: boolean) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('land_jobs').update({ active }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/land-jobs')
+  revalidatePath('/')
+  return {}
+}
+
+// Reorder a job up/down; renormalizes sort_order to sequential values so it
+// works even when jobs share the default 0. Mirrors moveCraft.
+export async function moveLandJob(id: string, direction: 'up' | 'down') {
+  const supabase = await requireAdmin()
+  const { data: jobs, error } = await supabase
+    .from('land_jobs')
+    .select('id, sort_order')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) return { error: error.message }
+  if (!jobs) return { error: 'Could not load jobs' }
+
+  const idx = jobs.findIndex(j => j.id === id)
+  if (idx === -1) return { error: 'Job not found' }
+  const target = direction === 'up' ? idx - 1 : idx + 1
+  if (target < 0 || target >= jobs.length) return {}
+
+  const reordered = [...jobs]
+  const [moved] = reordered.splice(idx, 1)
+  reordered.splice(target, 0, moved)
+
+  for (let i = 0; i < reordered.length; i++) {
+    if (reordered[i].sort_order === i) continue
+    const { error: upErr } = await supabase.from('land_jobs').update({ sort_order: i }).eq('id', reordered[i].id)
+    if (upErr) return { error: upErr.message }
+  }
+  revalidatePath('/admin/land-jobs')
+  revalidatePath('/')
+  return {}
+}
+
 // Public review submission — NOT admin-gated. Reviews come in hidden
 // (active: false) and only appear after the owner approves them in the admin.
 // Anon has no INSERT grant on reviews, so this writes via the service client.

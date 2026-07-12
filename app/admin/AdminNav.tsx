@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/crafts',       label: 'Inventory'     },
   { href: '/admin/blocks',       label: 'Blocks'        },
   { href: '/admin/reviews',      label: 'Reviews'       },
+  { href: '/admin/land-jobs',    label: 'Land Jobs'     },
   { href: '/admin/settings',     label: 'Settings'      },
 ]
 
