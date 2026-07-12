@@ -47,13 +47,11 @@ export default function LandJobsManager({ jobs }: { jobs: LandJob[] }) {
   }
 
   async function handleAdd() {
-    if (!beforeFile || !afterFile) { setError('Please choose both a before and an after photo.'); return }
+    if (!beforeFile) { setError('Please choose at least one photo.'); return }
     setError(null); setSaving(true)
     try {
-      const [before_url, after_url] = await Promise.all([
-        uploadPhoto('before', beforeFile),
-        uploadPhoto('after',  afterFile),
-      ])
+      const before_url = await uploadPhoto('before', beforeFile)
+      const after_url  = afterFile ? await uploadPhoto('after', afterFile) : null
       const res = await createLandJob({ title, before_url, after_url })
       if (res.error) { setError(res.error); setSaving(false); return }
       setTitle(''); setBeforeFile(null); setAfterFile(null); setBeforePrev(null); setAfterPrev(null)
@@ -81,22 +79,22 @@ export default function LandJobsManager({ jobs }: { jobs: LandJob[] }) {
       <div className="adm-content">
         {/* ── Add a new before/after ─────────────────────────────────────── */}
         <div className="adm-settings-card" style={{ marginBottom: '1.5rem' }}>
-          <h3 className="adm-settings-subheading">Add a before / after</h3>
+          <h3 className="adm-settings-subheading">Add a job photo</h3>
           <p className="adm-settings-hint">
-            Upload a &ldquo;before&rdquo; and an &ldquo;after&rdquo; photo of the same job. It appears as a
-            drag-to-reveal slider in the Skid Steer section.
+            Upload <strong>one photo</strong> (e.g. an already-made before/after image) to show it plain, or
+            add a matching <strong>after</strong> photo of the same shot to make a drag-to-reveal slider.
           </p>
 
           <div className="adm-edit-grid" style={{ marginTop: '.75rem' }}>
             <div className="adm-field">
-              <label className="adm-label">Before photo *</label>
-              {beforePrev && <Image src={beforePrev} alt="before preview" width={280} height={170}
+              <label className="adm-label">Photo *</label>
+              {beforePrev && <Image src={beforePrev} alt="photo preview" width={280} height={170}
                 style={{ objectFit: 'cover', width: '100%', height: 150, marginBottom: '.4rem' }} />}
               <input ref={beforeRef} type="file" accept="image/jpeg,image/png,image/webp"
                 onChange={e => pick('before', e.target.files?.[0])} />
             </div>
             <div className="adm-field">
-              <label className="adm-label">After photo *</label>
+              <label className="adm-label">After photo <span style={{ fontWeight: 400, opacity: .5 }}>— optional (makes a slider)</span></label>
               {afterPrev && <Image src={afterPrev} alt="after preview" width={280} height={170}
                 style={{ objectFit: 'cover', width: '100%', height: 150, marginBottom: '.4rem' }} />}
               <input ref={afterRef} type="file" accept="image/jpeg,image/png,image/webp"
@@ -113,8 +111,8 @@ export default function LandJobsManager({ jobs }: { jobs: LandJob[] }) {
           {error && <p className="adm-error" style={{ marginTop: '.6rem' }}>{error}</p>}
 
           <div className="adm-actions-row" style={{ marginTop: '1rem' }}>
-            <button className="adm-btn" onClick={handleAdd} disabled={saving || !beforeFile || !afterFile}>
-              {saving ? 'Uploading…' : 'Add before / after'}
+            <button className="adm-btn" onClick={handleAdd} disabled={saving || !beforeFile}>
+              {saving ? 'Uploading…' : 'Add photo'}
             </button>
           </div>
         </div>
@@ -129,14 +127,20 @@ export default function LandJobsManager({ jobs }: { jobs: LandJob[] }) {
               return (
                 <div key={j.id} className="craft-adm-card" style={{ opacity: j.active ? 1 : 0.5 }}>
                   <div className="craft-adm-img" style={{ position: 'relative' }}>
-                    <Image src={j.before_url} alt="before" fill style={{ objectFit: 'cover', clipPath: 'inset(0 50% 0 0)' }} />
-                    <Image src={j.after_url}  alt="after"  fill style={{ objectFit: 'cover', clipPath: 'inset(0 0 0 50%)' }} />
+                    {j.after_url ? (
+                      <>
+                        <Image src={j.before_url} alt="before" fill style={{ objectFit: 'cover', clipPath: 'inset(0 50% 0 0)' }} />
+                        <Image src={j.after_url}  alt="after"  fill style={{ objectFit: 'cover', clipPath: 'inset(0 0 0 50%)' }} />
+                      </>
+                    ) : (
+                      <Image src={j.before_url} alt="job" fill style={{ objectFit: 'cover' }} />
+                    )}
                   </div>
                   <div className="craft-adm-body">
                     <div className="craft-adm-top">
                       <div>
                         <div className="craft-adm-name">{j.title || 'Untitled job'}</div>
-                        <div className="craft-adm-slug">before / after</div>
+                        <div className="craft-adm-slug">{j.after_url ? 'before / after slider' : 'single photo'}</div>
                       </div>
                       <div className="craft-adm-badges">
                         <span className={`badge ${j.active ? 'badge-confirmed' : 'badge-cancelled'}`}>

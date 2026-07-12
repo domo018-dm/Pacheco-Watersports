@@ -5,7 +5,7 @@ import Image from 'next/image'
 
 interface Props {
   before: string
-  after:  string
+  after:  string | null
   title?: string | null
   sizes?: string
 }
@@ -13,8 +13,20 @@ interface Props {
 // Drag-to-reveal before/after slider. A full-width transparent range input
 // sits over the images, giving pointer drag AND keyboard control for free;
 // the "before" image is revealed via clip-path driven by its value.
+// When `after` is null the job is a single photo — shown plain, no slider.
 export default function BeforeAfter({ before, after, title, sizes = '(max-width: 1000px) 100vw, 50vw' }: Props) {
   const [pos, setPos] = useState(50)
+
+  if (!after) {
+    return (
+      <figure className="ba-wrap">
+        <div className="ba">
+          <Image className="ba-img" src={before} alt={title ?? 'Land clearing job'} fill sizes={sizes} style={{ objectFit: 'cover' }} />
+        </div>
+        {title && <figcaption className="ba-title">{title}</figcaption>}
+      </figure>
+    )
+  }
 
   return (
     <figure className="ba-wrap">

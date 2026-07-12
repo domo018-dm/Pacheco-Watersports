@@ -25,7 +25,7 @@ export interface LandJob {
   id: string
   title: string | null
   before_url: string
-  after_url: string
+  after_url: string | null   // null = single photo (no slider)
   active: boolean
   sort_order: number
   created_at: string

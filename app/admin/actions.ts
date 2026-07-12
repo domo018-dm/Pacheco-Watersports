@@ -52,12 +52,12 @@ export async function deleteReview(id: string) {
 }
 
 // ── Land-clearing before/after jobs ─────────────────────────────────────────
-export async function createLandJob(data: { title: string; before_url: string; after_url: string }) {
+export async function createLandJob(data: { title: string; before_url: string; after_url: string | null }) {
   const supabase = await requireAdmin()
   const { error } = await supabase.from('land_jobs').insert({
     title:      data.title.trim() || null,
     before_url: data.before_url,
-    after_url:  data.after_url,
+    after_url:  data.after_url || null,
   })
   if (error) return { error: error.message }
   revalidatePath('/admin/land-jobs')
