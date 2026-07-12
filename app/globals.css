@@ -921,6 +921,55 @@ a.pk-contact-val:hover { color: var(--water); }
 .badge-completed  { color: var(--water); background: oklch(0.72 0.115 228 / .12); }
 .badge-forsale    { color: var(--amber); background: oklch(0.83 0.165 82 / .12); font-weight: 700; }
 
+/* ── Land jobs admin: mobile-first add form ── */
+.lj-add {
+  border: 1px solid var(--line); background: var(--ink-2);
+  padding: 1.1rem 1rem 1.3rem; margin-bottom: 1.5rem; border-radius: 8px;
+  display: flex; flex-direction: column; gap: 1.4rem;
+}
+.lj-step { display: flex; flex-direction: column; gap: .55rem; }
+.lj-step--optional { border-left: 2px dashed var(--line); padding-left: .9rem; }
+.lj-step-title {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  font-family: var(--ff-mono); font-size: .92rem; font-weight: 700; color: var(--bone);
+  letter-spacing: .02em; text-transform: uppercase;
+}
+.lj-step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5rem; height: 1.5rem; flex: none; border-radius: 50%;
+  background: var(--amber); color: var(--ink); font-size: .82rem;
+}
+.lj-tag {
+  font-family: var(--ff-mono); font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
+  padding: .2rem .45rem; border-radius: 3px; font-weight: 700;
+}
+.lj-tag--req { color: var(--go); background: oklch(0.72 0.14 155 / .14); }
+.lj-tag--opt { color: oklch(0.85 0.015 85 / .55); background: oklch(0.85 0.015 85 / .08); }
+.lj-step-help {
+  font-family: var(--ff-body); font-size: .85rem; line-height: 1.45;
+  color: oklch(0.85 0.015 85 / .62);
+}
+.lj-preview {
+  width: 100%; height: auto; max-height: 230px; object-fit: cover;
+  border: 1px solid var(--line); border-radius: 6px;
+}
+.lj-pick { display: flex; gap: .6rem; flex-wrap: wrap; }
+.lj-pick-btn {
+  flex: 1 1 8rem; min-height: 3.1rem;
+  font-family: var(--ff-mono); font-size: .82rem; font-weight: 700; letter-spacing: .03em;
+  background: var(--ink); color: var(--bone); border: 1px solid var(--line);
+  cursor: pointer; transition: background .15s var(--ease), border-color .15s var(--ease);
+}
+.lj-pick-btn:active, .lj-pick-btn:hover { background: var(--ink-3); border-color: var(--amber); }
+.lj-submit {
+  width: 100%; min-height: 3.4rem;
+  font-family: var(--ff-mono); font-size: .92rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  background: var(--amber); color: var(--ink); border: none; cursor: pointer;
+  transition: filter .15s var(--ease);
+}
+.lj-submit:hover:not(:disabled) { filter: brightness(1.08); }
+.lj-submit:disabled { background: var(--line); color: oklch(0.85 0.015 85 / .4); cursor: not-allowed; }
+
 /* ── Buttons ── */
 .adm-btn {
   font-family: var(--ff-mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;

@@ -32,8 +32,10 @@ export default function LandJobsManager({ jobs }: { jobs: LandJob[] }) {
   const [afterPrev,   setAfterPrev]   = useState<string | null>(null)
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState<string | null>(null)
-  const beforeRef = useRef<HTMLInputElement>(null)
-  const afterRef  = useRef<HTMLInputElement>(null)
+  const beforeFileRef = useRef<HTMLInputElement>(null)
+  const beforeCamRef  = useRef<HTMLInputElement>(null)
+  const afterFileRef  = useRef<HTMLInputElement>(null)
+  const afterCamRef   = useRef<HTMLInputElement>(null)
 
   function pick(kind: 'before' | 'after', file: File | undefined) {
     if (!file) return
@@ -55,8 +57,9 @@ export default function LandJobsManager({ jobs }: { jobs: LandJob[] }) {
       const res = await createLandJob({ title, before_url, after_url })
       if (res.error) { setError(res.error); setSaving(false); return }
       setTitle(''); setBeforeFile(null); setAfterFile(null); setBeforePrev(null); setAfterPrev(null)
-      if (beforeRef.current) beforeRef.current.value = ''
-      if (afterRef.current)  afterRef.current.value = ''
+      for (const r of [beforeFileRef, beforeCamRef, afterFileRef, afterCamRef]) {
+        if (r.current) r.current.value = ''
+      }
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
@@ -78,43 +81,83 @@ export default function LandJobsManager({ jobs }: { jobs: LandJob[] }) {
 
       <div className="adm-content">
         {/* ── Add a new before/after ─────────────────────────────────────── */}
-        <div className="adm-settings-card" style={{ marginBottom: '1.5rem' }}>
-          <h3 className="adm-settings-subheading">Add a job photo</h3>
-          <p className="adm-settings-hint">
-            Upload <strong>one photo</strong> (e.g. an already-made before/after image) to show it plain, or
-            add a matching <strong>after</strong> photo of the same shot to make a drag-to-reveal slider.
-          </p>
+        <div className="lj-add">
+          <h3 className="adm-settings-subheading">Add a job</h3>
 
-          <div className="adm-edit-grid" style={{ marginTop: '.75rem' }}>
-            <div className="adm-field">
-              <label className="adm-label">Photo *</label>
-              {beforePrev && <Image src={beforePrev} alt="photo preview" width={280} height={170}
-                style={{ objectFit: 'cover', width: '100%', height: 150, marginBottom: '.4rem' }} />}
-              <input ref={beforeRef} type="file" accept="image/jpeg,image/png,image/webp"
-                onChange={e => pick('before', e.target.files?.[0])} />
+          {/* ── Step 1: the main photo (required) ─────────────────────────── */}
+          <div className="lj-step">
+            <div className="lj-step-title">
+              <span className="lj-step-num">1</span>
+              <span>Job photo</span>
+              <span className="lj-tag lj-tag--req">Required</span>
             </div>
-            <div className="adm-field">
-              <label className="adm-label">After photo <span style={{ fontWeight: 400, opacity: .5 }}>— optional (makes a slider)</span></label>
-              {afterPrev && <Image src={afterPrev} alt="after preview" width={280} height={170}
-                style={{ objectFit: 'cover', width: '100%', height: 150, marginBottom: '.4rem' }} />}
-              <input ref={afterRef} type="file" accept="image/jpeg,image/png,image/webp"
-                onChange={e => pick('after', e.target.files?.[0])} />
+            <p className="lj-step-help">
+              The photo everyone sees. If your picture already shows the before &amp; after in
+              one image, just add it here — you&rsquo;re done after this.
+            </p>
+
+            {beforePrev && (
+              <Image src={beforePrev} alt="photo preview" width={560} height={300} className="lj-preview" />
+            )}
+            <div className="lj-pick">
+              <button type="button" className="lj-pick-btn" onClick={() => beforeFileRef.current?.click()}>
+                📷 Choose photo
+              </button>
+              <button type="button" className="lj-pick-btn" onClick={() => beforeCamRef.current?.click()}>
+                📸 Take photo
+              </button>
             </div>
+            <input ref={beforeFileRef} type="file" accept="image/jpeg,image/png,image/webp"
+              hidden onChange={e => pick('before', e.target.files?.[0])} />
+            <input ref={beforeCamRef} type="file" accept="image/*" capture="environment"
+              hidden onChange={e => pick('before', e.target.files?.[0])} />
           </div>
 
-          <div className="adm-field" style={{ marginTop: '.75rem' }}>
-            <label className="adm-label">Caption <span style={{ fontWeight: 400, opacity: .5 }}>— optional</span></label>
+          {/* ── Step 2: optional "after" photo ────────────────────────────── */}
+          <div className="lj-step lj-step--optional">
+            <div className="lj-step-title">
+              <span className="lj-step-num">2</span>
+              <span>After photo</span>
+              <span className="lj-tag lj-tag--opt">Optional — skip if unsure</span>
+            </div>
+            <p className="lj-step-help">
+              Only add this if you have a <strong>second</strong> photo of the same spot taken
+              afterward. It turns the two into a slide-to-compare effect. Most jobs don&rsquo;t need it.
+            </p>
+
+            {afterPrev && (
+              <Image src={afterPrev} alt="after preview" width={560} height={300} className="lj-preview" />
+            )}
+            <div className="lj-pick">
+              <button type="button" className="lj-pick-btn" onClick={() => afterFileRef.current?.click()}>
+                📷 Choose photo
+              </button>
+              <button type="button" className="lj-pick-btn" onClick={() => afterCamRef.current?.click()}>
+                📸 Take photo
+              </button>
+            </div>
+            <input ref={afterFileRef} type="file" accept="image/jpeg,image/png,image/webp"
+              hidden onChange={e => pick('after', e.target.files?.[0])} />
+            <input ref={afterCamRef} type="file" accept="image/*" capture="environment"
+              hidden onChange={e => pick('after', e.target.files?.[0])} />
+          </div>
+
+          {/* ── Caption ───────────────────────────────────────────────────── */}
+          <div className="lj-step">
+            <div className="lj-step-title">
+              <span className="lj-step-num">3</span>
+              <span>Caption</span>
+              <span className="lj-tag lj-tag--opt">Optional</span>
+            </div>
             <input className="adm-input" placeholder="e.g. Overgrown lot cleared · Conchas Lake"
               value={title} onChange={e => setTitle(e.target.value)} />
           </div>
 
-          {error && <p className="adm-error" style={{ marginTop: '.6rem' }}>{error}</p>}
+          {error && <p className="adm-error" style={{ marginTop: '.4rem' }}>{error}</p>}
 
-          <div className="adm-actions-row" style={{ marginTop: '1rem' }}>
-            <button className="adm-btn" onClick={handleAdd} disabled={saving || !beforeFile}>
-              {saving ? 'Uploading…' : 'Add photo'}
-            </button>
-          </div>
+          <button className="lj-submit" onClick={handleAdd} disabled={saving || !beforeFile}>
+            {saving ? 'Uploading…' : 'Add to site'}
+          </button>
         </div>
 
         {/* ── Existing jobs ──────────────────────────────────────────────── */}
