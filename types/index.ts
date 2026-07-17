@@ -31,6 +31,16 @@ export interface LandJob {
   created_at: string
 }
 
+export interface TikTok {
+  id: string
+  video_id: string
+  url: string
+  caption: string | null
+  active: boolean
+  sort_order: number
+  created_at: string
+}
+
 export interface Reservation {
   id:                       string
   craft_id:                 string

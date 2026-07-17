@@ -9,6 +9,7 @@ import FleetSkeleton from '@/components/FleetSkeleton'
 import SkidSteerSection from '@/components/SkidSteerSection'
 import LocalSection from '@/components/LocalSection'
 import ReviewsSection from '@/components/ReviewsSection'
+import TikTokSection from '@/components/TikTokSection'
 import ContactSection from '@/components/ContactSection'
 import Footer from '@/components/Footer'
 
@@ -28,6 +29,9 @@ export default function Home() {
         <LocalSection />
         <Suspense fallback={null}>
           <ReviewsSection />
+        </Suspense>
+        <Suspense fallback={null}>
+          <TikTokSection />
         </Suspense>
         <ContactSection />
       </main>

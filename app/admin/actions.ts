@@ -114,6 +114,93 @@ export async function moveLandJob(id: string, direction: 'up' | 'down') {
   return {}
 }
 
+// ── TikTok videos ────────────────────────────────────────────────────────────
+// Parse the numeric TikTok video id from a pasted link. Handles full links
+// (/@user/video/<id> or /embed/v2/<id>) and resolves short vm.tiktok.com /
+// /t/ links server-side by following the redirect.
+async function resolveTikTokId(rawUrl: string): Promise<string | null> {
+  const url = rawUrl.trim()
+  const direct = url.match(/\/(?:video|embed(?:\/v2)?)\/(\d{6,})/)
+  if (direct) return direct[1]
+  if (/^\d{6,}$/.test(url)) return url   // pasted a bare id
+
+  if (/vm\.tiktok\.com|vt\.tiktok\.com|tiktok\.com\/t\//.test(url)) {
+    try {
+      const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0' } })
+      const m = res.url.match(/\/video\/(\d{6,})/)
+      if (m) return m[1]
+    } catch { /* fall through */ }
+  }
+  return null
+}
+
+export async function createTikTok(rawUrl: string, caption: string) {
+  const supabase = await requireAdmin()
+  if (!rawUrl.trim()) return { error: 'Please paste a TikTok link.' }
+
+  const videoId = await resolveTikTokId(rawUrl)
+  if (!videoId) {
+    return { error: "Couldn't read that TikTok link. Open the video, tap Share → Copy link, and paste it here." }
+  }
+
+  const { error } = await supabase.from('tiktoks').insert({
+    video_id: videoId,
+    url:      rawUrl.trim(),
+    caption:  caption.trim() || null,
+  })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/tiktoks')
+  revalidatePath('/')
+  return {}
+}
+
+export async function deleteTikTok(id: string) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('tiktoks').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/tiktoks')
+  revalidatePath('/')
+  return {}
+}
+
+export async function toggleTikTokActive(id: string, active: boolean) {
+  const supabase = await requireAdmin()
+  const { error } = await supabase.from('tiktoks').update({ active }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/tiktoks')
+  revalidatePath('/')
+  return {}
+}
+
+export async function moveTikTok(id: string, direction: 'up' | 'down') {
+  const supabase = await requireAdmin()
+  const { data: rows, error } = await supabase
+    .from('tiktoks')
+    .select('id, sort_order')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) return { error: error.message }
+  if (!rows) return { error: 'Could not load TikToks' }
+
+  const idx = rows.findIndex(r => r.id === id)
+  if (idx === -1) return { error: 'Video not found' }
+  const target = direction === 'up' ? idx - 1 : idx + 1
+  if (target < 0 || target >= rows.length) return {}
+
+  const reordered = [...rows]
+  const [moved] = reordered.splice(idx, 1)
+  reordered.splice(target, 0, moved)
+
+  for (let i = 0; i < reordered.length; i++) {
+    if (reordered[i].sort_order === i) continue
+    const { error: upErr } = await supabase.from('tiktoks').update({ sort_order: i }).eq('id', reordered[i].id)
+    if (upErr) return { error: upErr.message }
+  }
+  revalidatePath('/admin/tiktoks')
+  revalidatePath('/')
+  return {}
+}
+
 // Public review submission — NOT admin-gated. Reviews come in hidden
 // (active: false) and only appear after the owner approves them in the admin.
 // Anon has no INSERT grant on reviews, so this writes via the service client.
